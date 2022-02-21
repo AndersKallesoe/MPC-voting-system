@@ -1,7 +1,5 @@
-use std::thread;
 use std::net::TcpStream;
-use std::io::{self, Write};
-use rand::prelude::*;
+use std::io::{Write};
 
 /*
     this method fullfills the client role in a secret sharing addition voting protocol:
@@ -9,13 +7,14 @@ use rand::prelude::*;
     2. generate shares
     3. connect and communicate shares to server
 */
-pub fn client(prime: u64, servers: &'static Vec<&str>){
+pub fn client(prime: u64, servers: [&str; 2]){
     let vote = random_vote();
     let share0 = random_share(prime);
     let share1 = (prime + vote - share0) % prime;
-    println!("Vote: {}, share0: {}, share0: {}", vote, share0, share1);
-    thread::spawn(move || connect_and_share(servers[0], share0));
-    thread::spawn(move || connect_and_share(servers[1], share1));
+    println!("Vote: {}, share0: {}, share1: {}", vote, share0, share1);
+    connect_and_share(servers[0], share0);
+    connect_and_share(servers[1], share1);
+
 }
 
 pub fn connect_to_server(addr: &str) -> TcpStream {
@@ -24,8 +23,7 @@ pub fn connect_to_server(addr: &str) -> TcpStream {
 
 pub fn connect_and_share(addr: &str, share: u64){
     let mut stream = connect_to_server(addr);
-    stream.write(&share.to_be_bytes()).expect("Error");
-    loop{}
+    stream.write(&share.to_le_bytes()).expect("Error");
 }
 
 /* generate random vote 1(yes) or 0(no) */
