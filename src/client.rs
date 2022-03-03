@@ -1,6 +1,39 @@
 use std::net::TcpStream;
 use std::io::{Write};
 
+struct ShamirClient;
+struct AdditiveClient;
+
+impl AdditiveClient{
+    pub fn test1(){}
+    fn test2(){}
+}
+
+trait Client{
+    fn connect_and_share(&self, addrs: &Vec<&str>, shares: &Vec<f64>);
+    fn create_votes_and_shares(&self) -> (f64, Vec<f64>);
+}
+
+impl Client for ShamirClient {
+    fn connect_and_share(&self, addrs: &Vec<&str>, shares: &Vec<f64>){}
+    fn create_votes_and_shares(&self) -> (f64, Vec<f64>){(0.0, vec![])}
+}
+
+impl Client for AdditiveClient {
+    fn connect_and_share(&self, addrs: &Vec<&str>, shares: &Vec<f64>){
+        for (addr, share) in addrs.iter().zip(shares.iter()){
+            //connect_and_share(addr, share);
+        }
+    }
+    fn create_votes_and_shares(&self) -> (f64, Vec<f64>){(0.0, vec![])}
+}
+
+impl dyn Client{
+    pub fn connect_to_server(addr: &str) -> TcpStream {
+        TcpStream::connect(addr).expect("Error connecting to server")
+    }
+
+}
 /*
     this method fullfills the client role in a secret sharing addition voting protocol:
     1. generate vote
