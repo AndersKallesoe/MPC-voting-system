@@ -1,3 +1,4 @@
+/*
 use std::{thread, time};
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
@@ -21,9 +22,32 @@ struct Shares{
 }
 
 /*
-    factory metode som skaber tcp forbindelserne, gemmer ip:port og kalder startserver
+    server tasks:
+    liste af servere.
+    listen for shares (add: number, shamir: number)
+    listen for sums (add: sum, shamir: store in list based on server number (index in list)) 
+    add shares to get sum
+    share sum
+    compute result () 
 */
 
+
+
+
+
+/*
+    struct Server{
+        Sharingstrategy: Sharingstrategy
+        SharingStrategy.handleServer()
+        conns: Mutex<Vec<u64>>,
+        shares: Mutex<Vec<u64>>,
+        sums: Mutex<Vec<(u64, u64)>> //shamir should be able to determine which sum of shares came from which server
+    }
+*/
+
+/*
+    factory metode som skaber tcp forbindelserne, gemmer ip:port og kalder startserver
+*/
 //fn server_factory(no_of_servers: u64, enum: (shamir or additive)){ returns }
 /*
     let server_listener= TcpListener::bind("").unwrap();
@@ -200,7 +224,7 @@ fn wait(){
     let sec = time::Duration::from_secs(1);
     thread::sleep(sec);
 }
-
+*/
 /* 
 fn sum_shares(){
     let mut sum = 0;
@@ -210,8 +234,6 @@ fn sum_shares(){
  */
 /*
 pub fn start_server(addr: [&'static str; 2], index: usize, prime: u64){
-
-
     //listen for voters
     let shares = Arc::new(Shares{lock: Mutex::new(Vec::new()),});
     let shares_ref_clone = shares.clone();
@@ -239,7 +261,6 @@ pub fn start_server(addr: [&'static str; 2], index: usize, prime: u64){
     print!("i am server [{}] and ", addr[index]);
     println!("the result of the vote is: {}", votes);
 }
-
 fn connect_to_servers(addrs: [&'static str; 2], index: usize, sums_ref: Arc<Sums>){
     
     if index == 0{
@@ -258,7 +279,6 @@ fn connect_to_servers(addrs: [&'static str; 2], index: usize, sums_ref: Arc<Sums
         connect_and_share(addrs[0],sums_ref_clone)
     }
 }
-
 fn connect_and_share(addr: &str, sums: Arc<Sums>){
     let mut stream = TcpStream::connect(addr).expect("Error connecting to server");
     let mut s = sums.lock.lock().unwrap();
@@ -277,8 +297,6 @@ fn connect_and_share(addr: &str, sums: Arc<Sums>){
     }{}
     
 }
-
-
 fn handle_server( mut stream: TcpStream,sums: Arc<Sums>){
     let mut data = [0 as u8; 8];
     while match stream.read(&mut data){
@@ -296,8 +314,6 @@ fn handle_server( mut stream: TcpStream,sums: Arc<Sums>){
             false}
     }{}
 }
-
-
 fn listen(arc_ref: Arc<Shares>, addr: &'static str){
     let listener = TcpListener::bind(addr).unwrap();
     for stream in listener.incoming(){
@@ -317,7 +333,6 @@ fn listen(arc_ref: Arc<Shares>, addr: &'static str){
         }
     }
 }
-
 fn handle_client(mut stream: TcpStream, shares: Arc<Shares>) {
     let mut data = [0 as u8; 8];
     while match stream.read(&mut data){

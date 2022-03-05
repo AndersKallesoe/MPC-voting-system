@@ -12,20 +12,18 @@ struct Test1{
 }
 
 fn main() {
+    /*
     let test1 = Test1{test2: vec![String::from("bruh1"), String::from("bruh2"), String::from("bruh3")]};
     let serialized = serde_json::to_string(&test1).unwrap();
     println!("Serialized: {}", serialized);
     let deserialized: Test1 = serde_json::from_str(&serialized).unwrap();
     println!("Deserialized: {:?}", deserialized)
-    /* 
-    let zero: i64 = 0;
-    let one: i64 = 1;
-    let two: i64 = 2;
-    let three: i64 = 3;
-    let X = &vec![Ratio::new(one, one), Ratio::new(two, one)];
-    let C = &vec![Ratio::new(two,one),Ratio::new(three,one)];
-    let alpha = Ratio::new(zero, one);
-    println!("{}",lagrange::lagrange_interpolation(X, C, alpha)); */
+    */
+
+    let X = &vec![Ratio::new(1, 1), Ratio::new(2, 1), Ratio::new(3, 1)];
+    let C = &vec![Ratio::new(10, 1),Ratio::new(8, 1), Ratio::new(4, 1)];
+    //let alpha = Ratio::new(zero, one);
+    println!("{:?}",lagrange::lagrange_coefficients(X, C)); 
     //vote(23,20);
 }
 
