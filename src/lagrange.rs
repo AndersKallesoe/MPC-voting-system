@@ -3,63 +3,63 @@ use num::rational::Ratio;
 use num::bigint::BigInt;
 use num_bigint::{ToBigInt, };
 
-pub fn lagrange_interpolation(X: &Vec<Ratio<i64>>, C: &Vec<Ratio<i64>>, alpha: Ratio<i64>) -> Ratio<i64>{
-    let n = X.len();
+pub fn lagrange_interpolation(x_vec: &Vec<Ratio<i64>>, y_vec: &Vec<Ratio<i64>>, alpha: Ratio<i64>) -> Ratio<i64>{
+    let n = x_vec.len();
     let zero: i64 = 0;
     let one: i64 = 1;
     let mut yp = Ratio::new(zero, one);
     for i in 0..n{
         let mut p = Ratio::new(one, one);
         for j in 0..n{
-            if i!=j{p = p * (alpha - X[j])/(X[i] - X[j]);}
+            if i!=j{p = p * (alpha - x_vec[j])/(x_vec[i] - x_vec[j]);}
         }
-        yp = yp + p * C[i];
+        yp = yp + p * y_vec[i];
     }
     return yp
 }
 
-pub fn lagrange_coefficients(X: &Vec<Ratio<i64>>, Y: &Vec<Ratio<i64>>) -> Vec<Ratio<i64>>{
-    let n = X.len();
-    let mut coefficients: Vec<Vec<Ratio<i64>>> = vec![];
-    for j in 0..n{
+pub fn lagrange_coefficients(x_vec: &Vec<Ratio<i64>>, y_vec: &Vec<Ratio<i64>>) -> Vec<Ratio<i64>>{
+    let num_of_points = x_vec.len();
+    let mut sub_func_coefficients: Vec<Vec<Ratio<i64>>> = vec![];
+    for j in 0..num_of_points{
         let mut coeffs: Vec<Ratio<i64>> = vec![];
-        for i in 0..n{
-            coeffs.push(calc_coefficients(X, j, (i as i64) + 1));
+        for i in 0..num_of_points{
+            let coefficient_degree = (i as i64) + 1;
+            coeffs.push(calc_coefficients(x_vec, j, coefficient_degree));
         }
-        coefficients.push(coeffs);
+        sub_func_coefficients.push(coeffs);
     }
-    println!("{:?}", coefficients);
-    let mut weighted_coefficients = vec![];
-    let mut actual_coefficients = vec![Ratio::new(0, 1); coefficients.len()];
-    for (y, coeffs) in Y.iter().zip(coefficients.iter()){
+    let num_of_coefficients = sub_func_coefficients.len();
+    let mut weighted_sub_func_coefficients = vec![];
+    let mut interpolated_coefficients = vec![Ratio::new(0, 1); num_of_coefficients];
+    for (y, coeffs) in y_vec.iter().zip(sub_func_coefficients.iter()){
         let mut coeffs_ = vec![];
         for c in coeffs{
             coeffs_.push(c * y);
         }
-        weighted_coefficients.push(coeffs_);
+        weighted_sub_func_coefficients.push(coeffs_);
     }
-    for coeff in weighted_coefficients{
-        for i in 0..coefficients.len(){
-            actual_coefficients[i] += coeff[i];
+    for coeff in weighted_sub_func_coefficients{
+        for i in 0..num_of_coefficients{
+            interpolated_coefficients[i] += coeff[i];
         }
     }
-    println!();
-    return actual_coefficients
+    return interpolated_coefficients
 }
 
-fn calc_coefficients(X: &Vec<Ratio<i64>>, j: usize, c: i64) -> Ratio<i64>{
-    let mut minus_x = vec![];
+fn calc_coefficients(x_vec: &Vec<Ratio<i64>>, j: usize, c: i64) -> Ratio<i64>{
+    let mut negative_x = vec![];
     let mut divisor = Ratio::new(1,1);
-    for (i, x) in X.iter().enumerate(){
+    for (i, x) in x_vec.iter().enumerate(){
         if i == j{continue}
-        divisor *= X[j] - x;
-        minus_x.push(-x)
+        divisor *= x_vec[j] - x;
+        negative_x.push(-x)
     }
     if c == 1{ return Ratio::new(1, 1)/divisor }
     let mut sum_of_products = Ratio::new(0, 1);
-    for comb in combinations(minus_x, c - 1){
+    for combination in combinations(negative_x, c - 1){
         let mut product = Ratio::new(1, 1);
-        for n in comb{
+        for n in combination{
             product *= n;
         }
         sum_of_products += product;
@@ -68,21 +68,25 @@ fn calc_coefficients(X: &Vec<Ratio<i64>>, j: usize, c: i64) -> Ratio<i64>{
 }
 
 fn combinations(X: Vec<Ratio<i64>>, r: i64) -> Vec<Vec<Ratio<i64>>>{
-    let mut comb_vec = vec![];
-    let mut tup = vec![Ratio::new(0, 1); r as usize];
-    combinations_inner(&X, &mut comb_vec, &mut tup, 0, X.len() - 1, 0, r);
-    comb_vec
+    let mut combination_vec = vec![];
+    let mut combination_buffer = vec![Ratio::new(0, 1); r as usize]; //temporary buffer
+    combinations_inner(&X, &mut combination_vec, &mut combination_buffer, 0, X.len() - 1, 0, r); //recursive loop over X
+    combination_vec
 }
 
-fn combinations_inner(X: &Vec<Ratio<i64>>, comb_vec: &mut Vec<Vec<Ratio<i64>>>, tup: &mut Vec<Ratio<i64>>, start: usize, end: usize, index: usize, r:i64){
+fn combinations_inner(x_vec: &Vec<Ratio<i64>>, combination_vec: &mut Vec<Vec<Ratio<i64>>>, combination_buffer: &mut Vec<Ratio<i64>>, start: usize, end: usize, index: usize, r:i64){
     if index == r as usize{
-        comb_vec.push(tup.to_vec());
+        combination_vec.push(combination_buffer.to_vec()); //push copy of buffer to collection of possible combinations
         return
     }
     let mut i = start;
-    while (i <= end && end - i + 1 >= r as usize - index){
-        tup[index] = X[i];
-        combinations_inner(X, comb_vec, tup, i + 1, end, index + 1, r);
+    let mut end_not_reached = true;
+    let mut current_combination_not_finished = true;
+    while end_not_reached && current_combination_not_finished{
+        combination_buffer[index] = x_vec[i];
+        combinations_inner(x_vec, combination_vec, combination_buffer, i + 1, end, index + 1, r);
         i += 1;
+        end_not_reached = i <= end;
+        current_combination_not_finished = (end + 1) - i + 1 >= r as usize - index + 1; // + 1 added to avoid usize overflow
     }
 }
