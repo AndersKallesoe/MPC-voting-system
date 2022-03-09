@@ -1,7 +1,4 @@
-use num::rational::BigRational;
 use num::rational::Ratio;
-use num::bigint::BigInt;
-use num_bigint::{ToBigInt, };
 
 pub fn lagrange_interpolation(x_vec: &Vec<Ratio<i64>>, y_vec: &Vec<Ratio<i64>>, alpha: Ratio<i64>) -> Ratio<i64>{
     let n = x_vec.len();
