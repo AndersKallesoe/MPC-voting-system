@@ -8,6 +8,7 @@
     compute result () 
 */
 use std::net::{TcpListener, TcpStream, Shutdown};
+use std::io::{Read, Write};
 use num::rational::Ratio;
 use std::{thread, time};
 use std::sync::{Arc, Mutex};
@@ -18,15 +19,17 @@ pub struct SendServer{
 }
 
 pub struct Additive;
-pub struct Shamir;
-
+pub struct Shamir{
+    shares: Vec<Ratio<i64>>,
+    sums: Vec<Ratio<i64>>
+}
 pub trait Server{
     fn handle_server(&self, conn: TcpStream);
     fn handle_client(&self, conn: TcpStream);
-    fn run_protocol(&self) -> Ratio<i64>;
+    fn run_protocol(&self, conns: Vec<TcpStream>) -> Ratio<i64>;
 }
 impl SendServer{
-    pub fn start_server(self, conns: Vec<&str>, i: usize){
+    pub fn start_server(self, conns: Vec<String>, i: usize){
         let server_listener = SendServer::listen_available_port().unwrap();
         let client_listener = SendServer::listen_available_port().unwrap();
         let ref_counter = Arc::new(Mutex::new(self));
@@ -43,9 +46,10 @@ impl SendServer{
             }
         );
         //connect to servers based on vector of connections and index telling you which one you are
+        let server_list = self.connect_to_servers(&conns, i);
         //wait
         let ref_counter_clone_p = ref_counter.clone();
-        ref_counter_clone_p.lock().unwrap().send.lock().unwrap().run_protocol();
+        ref_counter_clone_p.lock().unwrap().send.lock().unwrap().run_protocol(server_list);
         loop{}
     }
 
@@ -59,8 +63,17 @@ impl SendServer{
         None
     }
 
-    fn connect_to_servers(){
-
+    fn connect_to_servers(&self, conns: &Vec<String>, i: usize) -> Vec<TcpStream>{
+        let conn_vec = vec![];
+        for (j, addr) in conns.iter().enumerate(){
+            if j == i {continue}
+            let mut stream = TcpStream::connect(addr);
+            match stream{
+                Ok(stream) => {conn_vec.push(stream)}
+                Err(_) => {println!("Error connecting to {}", addr);}
+            }
+        }
+        return conn_vec
     }
 
     fn listen_for_clients(&self, l: TcpListener){
@@ -103,7 +116,7 @@ impl Server for Additive{
     fn handle_client(&self, conn: TcpStream){
 
     }
-    fn run_protocol(&self) -> Ratio<i64>{
+    fn run_protocol(&self, conns: Vec<TcpStream>) -> Ratio<i64>{
         Ratio::new(1, 1)
     }
 }
@@ -113,9 +126,17 @@ impl Server for Shamir{
 
     }
     fn handle_client(&self, conn: TcpStream){
-
+        let mut data = [0 as u8; 8];
+        match conn.read(&mut data){
+            Ok(size)=>{
+                let share = Ratio::new(i64::from_le_bytes(data), 1);
+                self.shares.push(share);
+            }
+            Err(_)=>{}
+        }
     }
-    fn run_protocol(&self) -> Ratio<i64>{
+    fn run_protocol(&self, conns: Vec<TcpStream>) -> Ratio<i64>{
+
         Ratio::new(1, 1)
     }
 }
