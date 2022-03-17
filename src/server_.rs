@@ -7,7 +7,7 @@
     share sum
     compute result () 
 */
-use std::net::{TcpListener, TcpStream, Shutdown};
+use std::net::{TcpListener, TcpStream, Shutdown, SocketAddr};
 use std::io::{Read, Write};
 use num::rational::Ratio;
 use std::{thread, time};
@@ -30,10 +30,21 @@ pub trait Server{
 }
 impl SendServer{
     pub fn start_server(self, conns: Vec<String>, i: usize){
-        let server_listener = SendServer::listen_available_port().unwrap();
-        let client_listener = SendServer::listen_available_port().unwrap();
+        let server_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let server_listener_addr = server_listener.local_addr().unwrap();
+        let client_listener_addr = SocketAddr::new(server_listener_addr.ip(),server_listener_addr.port()+1);
+        let client_listener = TcpListener::bind(client_listener_addr).unwrap();
+
         let ref_counter = Arc::new(Mutex::new(self));
         let ref_counter_clone_s = ref_counter.clone();
+        let main_connection = TcpStream::connect("127.0.0.1:3333").unwrap();
+        
+        main_connection.write(buf: &[u8]);
+        //send adresse
+
+
+
+
         thread::spawn(
             move||{
                 ref_counter_clone_s.lock().unwrap().listen_for_servers(server_listener)
@@ -51,16 +62,6 @@ impl SendServer{
         let ref_counter_clone_p = ref_counter.clone();
         ref_counter_clone_p.lock().unwrap().send.lock().unwrap().run_protocol(server_list);
         loop{}
-    }
-
-    fn listen_available_port() -> Option<TcpListener> {
-        for port in 1025..65535 {
-            match TcpListener::bind(("127.0.0.1", port)) {
-                Ok(listener) => return Some(listener),
-                _ => ()
-            }
-        }
-        None
     }
 
     fn connect_to_servers(&self, conns: &Vec<String>, i: usize) -> Vec<TcpStream>{
