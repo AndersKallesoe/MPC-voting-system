@@ -41,6 +41,7 @@ pub fn lagrange_coefficients(x_vec: &Vec<Ratio<i64>>, y_vec: &Vec<Ratio<i64>>) -
             interpolated_coefficients[i] += coeff[i];
         }
     }
+    interpolated_coefficients.reverse();
     return interpolated_coefficients
 }
 
