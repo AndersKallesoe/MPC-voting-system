@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use serde_json::Result;
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::{thread, time};
 use std::sync::{Arc, Mutex};
@@ -16,12 +17,12 @@ struct Test1{
 }
 
 fn main() {
-    let strat = server_::Additive;
+    /*let strat = server_::Additive;
     let s = server_::SendServer{send: Arc::new(Mutex::new(strat))};
-    s.start_server(vec!["1", "2", "3"], 2);
+    s.start_server(vec!["1", "2", "3"], 2);*/
 }
 
-fn vote(prime: u64, voters: u64){
+/*fn vote(prime: u64, voters: u64){
     //thread::spawn(move || server::start_server(["127.0.0.1:3333", "127.0.0.1:3335"],0,prime));
     //thread::spawn(move || server::start_server(["127.0.0.1:3333", "127.0.0.1:3335"],1,prime));
     for _ in 0..voters{  
@@ -29,7 +30,7 @@ fn vote(prime: u64, voters: u64){
     }
     let five_secs = time::Duration::from_secs(5);
     thread::sleep(five_secs);
-}
+}*/
 pub struct Main{
     votes: Arc<Mutex<Vec<i64>>>,
     results: Arc<Mutex<Vec<i64>>>,
@@ -38,6 +39,7 @@ pub struct Main{
 
 impl Main{
     fn run_protocol(&'static self){
+        
         thread::spawn(
             ||{self.connect_servers()});// thread
         self.create_servers();
@@ -56,16 +58,16 @@ impl Main{
         // når alle servere har givet resultat -> print rapport
     }
     fn connect_servers(&'static self){
-        let conns = vec![];
+        let mut conns = vec![];
         let listener = TcpListener::bind("127.0.0.1:3333").unwrap();
         for stream in listener.incoming(){
             match stream{
                 Ok(stream) =>{
                     conns.push(stream);
                     thread::spawn(
-                        move || {
-                            self.handle_server(
-                                stream
+                        || {
+                            Main::handle_server(
+                                &stream
                             )
                         }
                     );
@@ -76,12 +78,11 @@ impl Main{
         loop{}
     }
 
-    fn handle_server(&self, conn: TcpStream){
+    fn handle_server(conn: &TcpStream){
         let mut data = [0 as u8; 8];
         match conn.read(&mut data){
             Ok(size)=>{
                 let share = Ratio::new(i64::from_le_bytes(data), 1);
-                self.shares.push(share);
             }
             Err(_)=>{}
         }

@@ -12,6 +12,8 @@ use std::io::{Read, Write};
 use num::rational::Ratio;
 use std::{thread, time};
 use std::sync::{Arc, Mutex};
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
 
 pub struct SendServer{
     pub send: Arc<Mutex<dyn Server + Send>>
@@ -29,7 +31,10 @@ pub trait Server{
     fn run_protocol(&self, conns: Vec<TcpStream>) -> Ratio<i64>;
 }
 impl SendServer{
+    //server metoden får en strategy
     pub fn start_server(self, conns: Vec<String>, i: usize){
+
+        //shares arc og sums arc
         let server_listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let server_listener_addr = server_listener.local_addr().unwrap();
         let client_listener_addr = SocketAddr::new(server_listener_addr.ip(),server_listener_addr.port()+1);
@@ -37,9 +42,9 @@ impl SendServer{
 
         let ref_counter = Arc::new(Mutex::new(self));
         let ref_counter_clone_s = ref_counter.clone();
-        let main_connection = TcpStream::connect("127.0.0.1:3333").unwrap();
-        
-        main_connection.write(buf: &[u8]);
+        let mut main_connection = TcpStream::connect("127.0.0.1:3333").unwrap();
+        let addr_json = serde_json::to_string(&server_listener_addr).unwrap();
+        main_connection.write(addr_json.as_bytes());
         //send adresse
 
 
@@ -59,8 +64,7 @@ impl SendServer{
         //connect to servers based on vector of connections and index telling you which one you are
         let server_list = self.connect_to_servers(&conns, i);
         //wait
-        let ref_counter_clone_p = ref_counter.clone();
-        ref_counter_clone_p.lock().unwrap().send.lock().unwrap().run_protocol(server_list);
+        ref_counter.lock().unwrap().send.lock().unwrap().run_protocol(server_list);
         loop{}
     }
 
