@@ -6,7 +6,7 @@ use std::{thread, time};
 use std::sync::{Arc, Mutex};
 use num::rational::Ratio;
 use std::io::{Read, Write};
-use std::str;
+use std::str::from_utf8;
 
 mod server;
 mod server_;
@@ -37,7 +37,8 @@ fn run_protocol(){
     let arc_2 = server_list.clone();
     thread::spawn(
         ||{listen_for_servers(server_listener, arc_2)});// thread
-    create_servers();
+    thread::spawn(
+        ||{create_servers()});
     thread::spawn(
         ||{listen_for_clients()});
     create_clients();
@@ -51,15 +52,14 @@ fn add_address(address: SocketAddrV4,arc_server_list: Arc<Mutex<Vec<SocketAddrV4
     arc_server_list.lock().unwrap().push(address);
 }
 fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<SocketAddrV4>>>){
-    
     for stream in listener.incoming(){
         match stream{
-            Ok(mut stream) =>{
+            Ok(stream) =>{
                 let arc = arc_server_list.clone();
                 thread::spawn(
                     move || {
                        handle_server(
-                            &mut stream,arc
+                            stream,arc
                         )
                     }
                 );
@@ -70,18 +70,30 @@ fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<Sock
     loop{}
 }
 
-fn handle_server(conn: &mut TcpStream, arc_server_list: Arc<Mutex<Vec<SocketAddrV4>>>){
+fn handle_server(mut conn: TcpStream, arc_server_list: Arc<Mutex<Vec<SocketAddrV4>>>){
     let mut data = [0 as u8; 1024];
     match conn.read(&mut data){
         Ok(size)=>{
-            //let share = Ratio::new(i64::from_le_bytes(data), 1);
-            let sent_str = str::from_utf8(&data[0..size]).unwrap();
+            let sent_str = from_utf8(&data[0..size]).unwrap();
             let addr: SocketAddrV4 = serde_json::from_str(&sent_str).expect("Error serializing from json");
             println!("main: HERE");
             let clone = arc_server_list.clone();
-            let mut guard = clone.lock().unwrap();
-            guard.push(addr);
-            println!("main: [{},{}]",guard[0],guard[1])
+            add_address(addr, clone);
+
+            loop{
+                let arcclone = arc_server_list.clone();
+                let guard = arcclone.lock().unwrap();
+                if guard.len() == 3{
+                    let addr_json = serde_json::to_string(&guard[..]).unwrap();
+                    println!("{:?}",addr_json);
+                    conn.write(addr_json.as_bytes()).expect("Error writing to server!");
+                    //std::mem::drop(guard);
+                    break;
+                }
+                std::mem::drop(guard);
+            }
+
+
         }
         Err(_)=>{}
     }
@@ -90,7 +102,10 @@ fn handle_server(conn: &mut TcpStream, arc_server_list: Arc<Mutex<Vec<SocketAddr
     
 } 
 fn create_servers(){
-    server2::protocol_server(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 3333))
+    thread::spawn(
+        ||{server2::protocol_server(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 3333))});
+    thread::spawn(
+        ||{server2::protocol_server(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 3333))});
 }
 fn listen_for_clients(){
 
