@@ -31,9 +31,10 @@ pub fn protocol_server(mainaddr: SocketAddrV4){
     );
     let (main_stream,addr_list) = connect_to_main(mainaddr, server_listener_addr);
     println!("protocol_server: {:?}",addr_list);
+    
+
     //connect_to_servers(addr_list, sum);
     //send_result(main_stream, result);
-
 }
 
 fn connect_to_servers(addr_list: Vec<SocketAddrV4>){}
