@@ -23,7 +23,6 @@ pub fn recover_secret(shares: &Vec<i64>, xs: &Vec<i64>) -> i64{
     let result_as_ratio = crate::lagrange::lagrange_interpolation(&x_vec, &share_vec, Ratio::new(0, 1));
     *result_as_ratio.numer()
 }
-
 pub fn recover_coefficients(shares: &Vec<i64>, xs: &Vec<i64>) -> Vec<i64>{
     let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
     let x_vec = xs.iter().map(|x|Ratio::new(*x, 1)).collect::<Vec<Ratio<i64>>>();

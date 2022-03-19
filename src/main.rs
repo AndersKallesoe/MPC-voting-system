@@ -10,12 +10,15 @@ use std::str::from_utf8;
 
 mod server;
 mod server_;
-mod client;
+mod client2;
 mod lagrange;
+mod shamir;
 mod server2;
 #[derive(Serialize, Deserialize, Debug)]
-struct Test1{
-    test2: Vec<String>
+
+enum Protocol{
+    Additive{prime: i64},
+    Shamir{prime: i64}
 }
 
 fn main() {
