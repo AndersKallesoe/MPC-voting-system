@@ -31,13 +31,12 @@ pub struct Protocol{
 }
 
 fn main() {
-    // let bytes = (256 as i64).to_le_bytes();
-    // let vote: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 255];
-    // let u = u64::from_le_bytes(vote);
-    //println!("{:?}", bytes);
-    // println!("{}", u);
-    let protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
-    run_protocol(protocol)
+    let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
+    run_protocol(additive_2_protocol);
+    let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
+    run_protocol(additive_3_protocol);
+    let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
+    run_protocol(shamir_protocol)
 }
 
 fn run_protocol(protocol: Protocol){
@@ -55,53 +54,83 @@ fn run_protocol(protocol: Protocol){
 
     let arc_server_list = server_list.clone();
     add_address((main_server_address, main_client_address), arc_server_list);
-    println!("{:?}", server_list.lock().unwrap());
     let arc_server_list = server_list.clone();
-
+    println!("creating servers...");
     thread::spawn(
         move||{create_servers(main_server_address, protocol)});
-    thread::spawn(
-        ||{listen_for_servers(server_listener, arc_server_list)});// thread
+    let server_streams = listen_for_servers(server_listener, arc_server_list, protocol);// thread
+    let arc_server_list = server_list.clone(); 
+    
+    broadcast_server_list(&server_streams, arc_server_list);
+    let arc_server_list = server_list.clone();
+    println!("creating clients...");
 
-    loop{
-        let arcclone = server_list.clone();
-        let guard = arcclone.lock().unwrap();
-        if guard.len() == 3{
-            break;
-        }
-        std::mem::drop(guard);
-    }
     thread::spawn(
-            move ||{create_clients(server_list.clone(),protocol)});
+            move ||{create_clients(arc_server_list,protocol)});
+    println!("collecting votes...");
     let result = listen_for_clients(client_listener, protocol.voters);
-    println!("Result: {}", result);
-    //get_results_from_servers();
-    //report_results();
-    loop{}
+    println!("collecting results...");
+    let results = get_results_from_servers(server_streams,protocol);
+    report_results(protocol, result, results);
 }
 
-fn get_results_from_servers(listener: TcpListener, protocol: Protocol)->Vec<i64>{
+fn report_results(protocol: Protocol, result: i64, results: Vec<i64>){
+    line();
+    println!("Results:");
+    line();
+    println!("Protocol: {:?}",protocol.protocol);
+    println!("Servers: {}", protocol.servers);
+    println!("Voters: {}", protocol.voters);
+    println!("Prime: {}", protocol.prime);
+    line();
+    println!("Actual Result: {}",result);
+    println!("Server Results: {:?}", &results[1..]);
+    line();
+    let success = check_results(result,results);
+    println!("Protocol succes: {}",success);
+    line();
+}
+fn line(){
+    println!("________________________________________________________________________")
+}
+fn check_results(result: i64, results: Vec<i64>)->bool{
+    for r in results[1..].iter(){
+        if *r != result{
+            return false
+        }
+    };
+    return true
+}
+
+fn broadcast_server_list(server_streams: &Vec<TcpStream>, arc_server_list: Arc<Mutex<Vec<(SocketAddrV4,SocketAddrV4)>>>){
+    
+    for mut stream in server_streams{
+        let clone =  arc_server_list.clone();
+        let guard = clone.lock().unwrap();
+        let msg = serde_json::to_string(&guard[..]).unwrap();
+        stream.write(&msg.as_bytes()).expect("failed to send serverlist");
+    }
+}
+
+fn get_results_from_servers(server_streams: Vec<TcpStream>, protocol: Protocol)->Vec<i64>{
     let mut results = vec![0 as i64; protocol.servers as usize + 1];
     let mut responds = 0;
-    for stream in listener.incoming(){
-        match stream{
-            Ok(mut stream) =>{
-                let mut data = [0 as u8; 1024];
-                match stream.read(&mut data){
-                    Ok(size)=>{
-                        let sent_str = from_utf8(&data[0..size]).unwrap();
-                        let (index,result): (usize, i64) = serde_json::from_str(&sent_str).expect("Error serializing from json");
-                        results[index]=result;
-                        responds += 1;
-                        if responds == protocol.servers {
-                            return results
-                        }
-                    }
-                    Err(_)=>{println!("Main error 1");  return vec![]}
+    for mut stream in server_streams{
+        let mut data = [0 as u8; 1024];
+        match stream.read(&mut data){
+            Ok(size)=>{
+                let sent_str = from_utf8(&data[0..size]).unwrap();
+                let (index,result): (usize, i64) = serde_json::from_str(&sent_str).expect("Error serializing from json");
+                results[index]=result;
+                responds += 1;
+                if responds == protocol.servers {
+                    return results
                 }
             }
-            Err(_) => {println!("Main error 2"); return vec![]}
+            Err(_)=>{println!("Main error 1");  return vec![]}
         }
+        
+        
     };
     vec![]
 }
@@ -109,55 +138,32 @@ fn get_results_from_servers(listener: TcpListener, protocol: Protocol)->Vec<i64>
 fn add_address(address: (SocketAddrV4, SocketAddrV4), arc_server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>){
     arc_server_list.lock().unwrap().push(address);
 }
-fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>){
+fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>, protocol: Protocol)-> Vec<TcpStream>{
+    let mut servers = protocol.servers;
+    let mut streams = vec![];
     for stream in listener.incoming(){
         match stream{
-            Ok(stream) =>{
-                let arc = arc_server_list.clone();
-                thread::spawn(
-                    move || {
-                       handle_server(
-                            stream,arc
-                        )
+            Ok(mut stream) =>{
+                let mut data = [0 as u8; 1024];
+                match stream.read(&mut data){
+                    Ok(size)=>{
+                        let sent_str = from_utf8(&data[0..size]).unwrap();
+                        let addr: (SocketAddrV4, SocketAddrV4) = serde_json::from_str(&sent_str).expect("Error serializing from json");
+                        let clone = arc_server_list.clone();
+                        add_address(addr, clone);
+                        servers -=1;
+                        streams.push(stream);
+                        if servers == 0 {
+                            return streams
+                        }
                     }
-                );
+                    Err(_)=>{}
+                }
             }
             Err(err) => {println!("Error: {}", err); panic!();}
         }
-    }
-    loop{}
-}
-
-fn handle_server(mut conn: TcpStream, arc_server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>){
-    let mut data = [0 as u8; 1024];
-    match conn.read(&mut data){
-        Ok(size)=>{
-            let sent_str = from_utf8(&data[0..size]).unwrap();
-            let addr: (SocketAddrV4, SocketAddrV4) = serde_json::from_str(&sent_str).expect("Error serializing from json");
-            let clone = arc_server_list.clone();
-            println!("calling add_address");
-            add_address(addr, clone);
-            println!("main received adress from server");
-            loop{
-                let arcclone = arc_server_list.clone();
-                let guard = arcclone.lock().unwrap();
-                if guard.len() == 3{
-                    let addr_json = serde_json::to_string(&guard[..]).unwrap();
-                    //println!("{:?}",addr_json);
-                    conn.write(addr_json.as_bytes()).expect("Error writing to server!");
-                    //std::mem::drop(guard);
-                    break;
-                }
-                std::mem::drop(guard);
-            }
-
-
-        }
-        Err(_)=>{}
-    }
-    // vent paa den faar serveres resultat
-    // naar resultat er modtaget check om alle resultater er modtaget: hvis de er afslut
-    
+    };
+    vec![]
 }
 
 fn create_servers(main_addr: SocketAddrV4, protocol: Protocol){

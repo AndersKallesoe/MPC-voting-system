@@ -65,10 +65,10 @@ fn calc_coefficients(x_vec: &Vec<Ratio<i64>>, j: usize, c: i64) -> Ratio<i64>{
     return sum_of_products / divisor
 }
 
-fn combinations(X: Vec<Ratio<i64>>, r: i64) -> Vec<Vec<Ratio<i64>>>{
+fn combinations(x: Vec<Ratio<i64>>, r: i64) -> Vec<Vec<Ratio<i64>>>{
     let mut combination_vec = vec![];
     let mut combination_buffer = vec![Ratio::new(0, 1); r as usize]; //temporary buffer
-    combinations_inner(&X, &mut combination_vec, &mut combination_buffer, 0, X.len() - 1, 0, r); //recursive loop over X
+    combinations_inner(&x, &mut combination_vec, &mut combination_buffer, 0, x.len() - 1, 0, r); //recursive loop over X
     combination_vec
 }
 

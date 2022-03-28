@@ -3,7 +3,7 @@ use num::rational::Ratio;
 pub fn create_shares(secret: i64, prime: i64, number_of_servers: i64) -> Vec<i64>{
     let coefficients = create_coefficients(secret, number_of_servers-1, prime as u64);
     let mut ys = vec![];
-    for x in 1..number_of_servers{
+    for x in 1..number_of_servers + 1{
         let mut y = 0;
         for (i, c) in coefficients.iter().enumerate(){
             y += c * x.pow(i as u32);
@@ -20,7 +20,7 @@ fn create_coefficients(secret: i64, t: i64, prime: u64) -> Vec<i64>{
     coeffs
 }
 
-pub fn recover_secret(shares: &Vec<i64>) -> i64{
+pub fn recover_secret(shares: &[i64]) -> i64{
     let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
     let x_vec = (1..shares.len() as i64 + 1).map(|x|Ratio::new(x, 1)).collect::<Vec<Ratio<i64>>>();
     let result_as_ratio = crate::lagrange::lagrange_interpolation(&x_vec, &share_vec, Ratio::new(0, 1));

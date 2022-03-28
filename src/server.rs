@@ -3,7 +3,6 @@ use std::io::{Write, Read};
 use std::{thread};
 use std::sync::{Arc, Mutex};
 use std::str::*;
-use std::time::*;
 use crate::*;
 
 pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4){
@@ -25,7 +24,6 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4){
     let (main_stream,addr_list) = connect_to_main(mainaddr, (server_listener_addr, client_listener_addr));
     listen_for_clients(protocol.voters, client_listener,arc_shares);
     let sum = sum(shares);
-    println!("protocol_server: {:?}",sum % protocol.prime);
     let mut vec = vec![0 as i64; protocol.servers as usize + 1];
     vec[get_index_from_addr(&addr_list, server_listener_addr)] = sum;
 
@@ -39,12 +37,20 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4){
     let arc_sums = sums.clone();
     connect_to_servers(addr_list.clone(), arc_sums, server_listener_addr);
     let arc_sums = sums.clone();
-    println!("Waiting for thread to finish!");
     listen_for_servers_thread.join().expect("Couldn't join threads!");
-    println!("join succesfull");
-    let secret = additive::recover_secret(&arc_sums.lock().unwrap()[1..], protocol.prime);
-    println!("{} list: {:?}",server_listener_addr, &arc_sums.lock().unwrap()[..]);
-    println!("{} result: {}",server_listener_addr,secret);
+    
+    let secret = match protocol.protocol {
+        ProtocolType::Additive => {
+            additive::recover_secret(&arc_sums.lock().unwrap()[1..], protocol.prime)
+        }
+        ProtocolType::Shamir => {
+            shamir::recover_secret(&arc_sums.lock().unwrap()[1..])
+        }
+        _ => {
+            println!("pattern match failed");
+            0
+        }
+    };
     let own_index = get_index_from_addr(&addr_list, server_listener_addr);
     send_result(main_stream, secret,own_index);
 }
@@ -105,9 +111,8 @@ fn listen_for_servers(listener: TcpListener, addr_list: Vec<(SocketAddrV4,Socket
                         if received_from[received_message.0] {continue}
                         received_from[received_message.0] = true;
                         sum_guard[received_message.0] = received_message.1;
-                        println!("{} set {} to {}",own_index, received_message.0, received_message.1);
                         let serialized_own_sum = serde_json::to_string(&own_sum).unwrap();
-                        stream.write(&serialized_own_sum.as_bytes());
+                        stream.write(&serialized_own_sum.as_bytes()).expect("could not write to stream");
                         remaining -= 1;
                         if remaining == 0{return }
                     }
@@ -151,12 +156,14 @@ fn connect_to_main(mainaddr: SocketAddrV4, server_listener_addr: (SocketAddrV4,S
     match main_stream.read(&mut data){
         Ok(size)=>{
             let sent_str = std::str::from_utf8(&data[0..size]).unwrap();
+            let mut error_str = String::from("Error serializing string: ");
+            error_str.push_str(sent_str);
+            error_str.push_str("\n");
             //println!("Server: {}", sent_str);
-            let addr_list: Vec<(SocketAddrV4, SocketAddrV4)> = serde_json::from_str(&sent_str).expect("Error serializing from json");
-            println!("server: {:?}",addr_list);
+            let addr_list: Vec<(SocketAddrV4, SocketAddrV4)> = serde_json::from_str(&sent_str).expect(&error_str);
             (main_stream, addr_list)
         }
-        Err(_)=>{ (main_stream, vec![])}
+        Err(_)=>{ println!("did not receive server list"); panic!()}
     }
 }
 fn sum (shares: Arc<Mutex<Vec<i64>>>)-> i64 {
