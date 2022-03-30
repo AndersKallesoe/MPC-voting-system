@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::str::*;
 use crate::*;
 
-pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4){
+pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool){
     let server_listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let server_listener_addr = 
         match server_listener.local_addr() {
@@ -23,7 +23,10 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4){
     let arc_shares = shares.clone(); 
     let (main_stream,addr_list) = connect_to_main(mainaddr, (server_listener_addr, client_listener_addr));
     listen_for_clients(protocol.voters, client_listener,arc_shares);
-    let sum = sum(shares);
+    let sum = match honest{
+        true => {sum(shares)}
+        false => {sum(shares) + 1}
+    };
     let mut vec = vec![0 as i64; protocol.servers as usize + 1];
     vec[get_index_from_addr(&addr_list, server_listener_addr)] = sum;
 

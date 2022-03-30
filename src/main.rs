@@ -30,6 +30,12 @@ pub struct Protocol{
     protocol: ProtocolType
 }
 
+/**
+ * få styr på lagrange hvis resultat ikke er heltal
+ * bool array til create servers?
+ * pretty print fault detection.
+ */
+
 fn main() {
     // let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
     // run_protocol(additive_2_protocol);
@@ -168,12 +174,22 @@ fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<(Soc
     vec![]
 }
 
-fn create_servers(main_addr: SocketAddrV4, protocol: Protocol){
-    for _ in 0..protocol.servers {
+fn create_servers(main_addr: SocketAddrV4, protocol: Protocol, corrupt: Vec<u8> ){
+    let mut next_corrupt = get_next_corrupt(&corrupt);
+    for i in 0..protocol.servers {
+        let mut honest = true;
+        if i==next_corrupt{ next_corrupt = get_next_corrupt(&corrupt);honest = false}
         thread::spawn(
-            move ||{server::protocol_server(protocol.clone(), main_addr.clone())});
+            move ||{server::protocol_server(protocol.clone(), main_addr.clone(), honest)});
     }
-    
+
+fn get_next_corrupt(corrupt: &Vec<u8>) -> u8{
+    match corrupt.pop(){
+        None => {u8::MAX}
+        Some(i) => {i}
+    }
+}
+
 }
 fn listen_for_clients(listener: TcpListener, voters: u16) -> i64{
     let mut votes:i64 = 0;
