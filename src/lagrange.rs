@@ -14,7 +14,7 @@ pub fn lagrange_interpolation(x_vec: &Vec<Ratio<i64>>, y_vec: &Vec<Ratio<i64>>, 
     }
     return yp
 }
-
+// (x - a)(x - b)(x - c)
 pub fn lagrange_coefficients(x_vec: &Vec<Ratio<i64>>, y_vec: &Vec<Ratio<i64>>) -> Vec<Ratio<i64>>{
     let num_of_points = x_vec.len();
     let mut sub_func_coefficients: Vec<Vec<Ratio<i64>>> = vec![];

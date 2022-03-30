@@ -7,10 +7,15 @@ pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol){
     let secret = create_secret();
     let shares = match protocol.protocol{
         ProtocolType::Additive => {
-            additive::create_shares(secret, protocol.prime, (server_list.len()-1) as i64)
+            additive::create_shares(secret, protocol.prime, protocol.servers as i64)
         }
         ProtocolType::Shamir => {
-           shamir::create_shares(secret,protocol.prime,(server_list.len()-1) as i64)
+            let coefficients = shamir::create_coefficients(secret, (protocol.servers - 1) as i64, protocol.prime as u64);
+            shamir::create_shares(&coefficients, protocol.servers as i64)
+        }
+        ProtocolType::ShamirFaultDetection => {
+            let coefficients = shamir::create_coefficients(secret, shamir::detection_degree(protocol.servers), protocol.prime as u64);
+            shamir::create_shares(&coefficients, protocol.servers as i64)
         }
         _ => {
             println!("pattern match failed");

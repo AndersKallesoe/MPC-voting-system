@@ -31,11 +31,13 @@ pub struct Protocol{
 }
 
 fn main() {
-    let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
-    run_protocol(additive_2_protocol);
-    let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
-    run_protocol(additive_3_protocol);
-    let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
+    // let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
+    // run_protocol(additive_2_protocol);
+    // let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
+    // run_protocol(additive_3_protocol);
+    // let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
+    // run_protocol(shamir_protocol)
+    let shamir_protocol = Protocol{prime: 17, servers: 3, voters: 5, protocol: ProtocolType::ShamirFaultDetection};
     run_protocol(shamir_protocol)
 }
 
