@@ -20,16 +20,26 @@ pub fn recover_secret(shares: &[i64]) -> i64{
     let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
     let x_vec = (1..shares.len() as i64 + 1).map(|x|Ratio::new(x, 1)).collect::<Vec<Ratio<i64>>>();
     let result_as_ratio = crate::lagrange::lagrange_interpolation(&x_vec, &share_vec, Ratio::new(0, 1));
-    *result_as_ratio.numer() //TODO: Propagate cases where denominator is not 1 further in the system
+    match * result_as_ratio.denom(){
+        1 => {*result_as_ratio.numer()}
+        _ => {-2}
+    } //TODO: Propagate cases where denominator is not 1 further in the system
 }
 
 fn recover_coefficients(shares: &[i64]) -> Vec<i64>{
     let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
     let x_vec = (1..shares.len() as i64 + 1).map(|x|Ratio::new(x, 1)).collect::<Vec<Ratio<i64>>>();
     let coeffs_as_ratios = crate::lagrange::lagrange_coefficients(&x_vec, &share_vec);
-    coeffs_as_ratios.iter().map(|c|*c.numer()).collect::<Vec<i64>>() //TODO: Propagate cases where denominator is not 1 further in the system
+    let mut result = vec![];
+    for coeff in coeffs_as_ratios.iter(){
+        match *coeff.denom(){
+            1=> {result.push(*coeff.numer());}
+            _=> return vec![-2]
+        }
+    }; //TODO: Propagate cases where denominator is not 1 further in the system
+    result
 }
-
+//[x*2 for x in numbers]
 fn verify(coefficients: &[i64], x: i64, y: i64) -> bool{
     let y_1 = evaluate(coefficients, x);
     y_1 == y
@@ -46,10 +56,12 @@ fn evaluate(coefficients: &[i64], x: i64) -> i64{
 pub fn fault_detection(shares: &[i64]) -> i64{
     let servers = shares.len();
     let degree = detection_degree(servers as u8) as usize;
-    let coefficients = recover_coefficients(&shares[..degree+2]);
-    for i in degree+2..servers{
-        if !verify(&coefficients, (i + 1) as i64, shares[i]){
-            return -1
+    let coefficients = recover_coefficients(&shares[..degree+1]);
+    if coefficients != vec![-2]{
+        for i in degree+1..servers{
+            if !verify(&coefficients, (i + 1) as i64, shares[i]){
+                return -1
+            }
         }
     }
     coefficients[0]

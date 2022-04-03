@@ -24,8 +24,8 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool)
     let (main_stream,addr_list) = connect_to_main(mainaddr, (server_listener_addr, client_listener_addr));
     listen_for_clients(protocol.voters, client_listener,arc_shares);
     let sum = match honest{
-        true => {sum(shares)}
-        false => {sum(shares) + 1}
+        true => {{let shares_sum = sum(shares); println!("Honest {}", shares_sum); shares_sum}}
+        false => {{let shares_sum = sum(shares) + 1; println!("Dishonest {}", shares_sum); shares_sum}}
     };
     let mut vec = vec![0 as i64; protocol.servers as usize + 1];
     vec[get_index_from_addr(&addr_list, server_listener_addr)] = sum;

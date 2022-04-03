@@ -31,23 +31,22 @@ pub struct Protocol{
 }
 
 /**
- * få styr på lagrange hvis resultat ikke er heltal
- * bool array til create servers?
  * pretty print fault detection.
  */
 
 fn main() {
     // let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
-    // run_protocol(additive_2_protocol);
+    // run_protocol(additive_2_protocol, vec![]);
     // let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
-    // run_protocol(additive_3_protocol);
+    // run_protocol(additive_3_protocol, vec![]);
     // let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
-    // run_protocol(shamir_protocol)
+    // run_protocol(shamir_protocol, vec![])
+    let corrupt = vec![2];
     let shamir_protocol = Protocol{prime: 17, servers: 3, voters: 5, protocol: ProtocolType::ShamirFaultDetection};
-    run_protocol(shamir_protocol)
+    run_protocol(shamir_protocol, corrupt);
 }
 
-fn run_protocol(protocol: Protocol){
+fn run_protocol(protocol: Protocol, corrupt: Vec<u8>){
     let server_list = Arc::new(Mutex::new(vec![]));
     let server_listener = TcpListener::bind("127.0.0.1:0").expect("Error creating server listener!");
     let client_listener = TcpListener::bind("127.0.0.1:0").expect("Error creating client listener!");
@@ -65,8 +64,8 @@ fn run_protocol(protocol: Protocol){
     let arc_server_list = server_list.clone();
     println!("creating servers...");
     thread::spawn(
-        move||{create_servers(main_server_address, protocol)});
-    let server_streams = listen_for_servers(server_listener, arc_server_list, protocol);// thread
+        move||{create_servers(main_server_address, protocol, corrupt)});
+    let server_streams = listen_for_servers(server_listener, arc_server_list, protocol);
     let arc_server_list = server_list.clone(); 
     
     broadcast_server_list(&server_streams, arc_server_list);
@@ -94,8 +93,29 @@ fn report_results(protocol: Protocol, result: i64, results: Vec<i64>){
     println!("Actual Result: {}",result);
     println!("Server Results: {:?}", &results[1..]);
     line();
-    let success = check_results(result,results);
-    println!("Protocol succes: {}",success);
+    let mut agree = true;
+    let mut lastresult = results[1];
+    for r in &results[1..] {
+        if *r != lastresult{
+            agree = false;
+            break;
+        }
+        lastresult = *r;
+    }
+    if agree{
+        println!("all servers agree");
+         match results[1] {
+            -1 => {println!("a fault was detected in the protocol")}
+            -2 =>{println!("could not find polynomial consisting of integers!")}
+            _=>{let success = check_results(result,results);
+                println!("Protocol succes: {}",success);}
+        };
+        
+    }else{
+        println!("server disagree(there is a bug!)");
+        println!("{:?}", results);
+    }
+    
     line();
 }
 fn line(){
@@ -174,16 +194,16 @@ fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<(Soc
     vec![]
 }
 
-fn create_servers(main_addr: SocketAddrV4, protocol: Protocol, corrupt: Vec<u8> ){
-    let mut next_corrupt = get_next_corrupt(&corrupt);
+fn create_servers(main_addr: SocketAddrV4, protocol: Protocol, mut corrupt: Vec<u8> ){
+    let mut next_corrupt = get_next_corrupt(&mut corrupt);
     for i in 0..protocol.servers {
         let mut honest = true;
-        if i==next_corrupt{ next_corrupt = get_next_corrupt(&corrupt);honest = false}
+        if i==next_corrupt{ next_corrupt = get_next_corrupt(&mut corrupt);honest = false}
         thread::spawn(
             move ||{server::protocol_server(protocol.clone(), main_addr.clone(), honest)});
     }
 
-fn get_next_corrupt(corrupt: &Vec<u8>) -> u8{
+fn get_next_corrupt(corrupt: &mut Vec<u8>) -> u8{
     match corrupt.pop(){
         None => {u8::MAX}
         Some(i) => {i}

@@ -15,6 +15,7 @@ pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol){
         }
         ProtocolType::ShamirFaultDetection => {
             let coefficients = shamir::create_coefficients(secret, shamir::detection_degree(protocol.servers), protocol.prime as u64);
+            //println!("{:?}",coefficients);
             shamir::create_shares(&coefficients, protocol.servers as i64)
         }
         _ => {
