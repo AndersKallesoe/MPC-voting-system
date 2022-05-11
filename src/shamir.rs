@@ -1,4 +1,5 @@
 use num::rational::Ratio;
+use pyo3::prelude::*;
 
 pub fn create_shares(coefficients: &Vec<i64>, number_of_servers: i64) -> Vec<i64>{
     let mut ys = vec![];
@@ -67,6 +68,53 @@ pub fn fault_detection(shares: &[i64]) -> i64{
     coefficients[0]
 }
 
+pub fn error_correction(shares: &[i64]) -> i64{
+    let servers = shares.len();
+    let degree = correction_degree(servers as u8);
+    let result = match welch_berlekamp(shares, degree as u8){
+        Ok(res) => {println!("{:?}",res);res}
+        Err(error) => {panic!("{}",error)}
+    };
+    return result[result.len() - 1]
+}
+
+// fn check_result(v: Vec<i64>) -> Vec<i64>{
+//     let mut result = vec!();
+//     for f in v {
+//         let int = f as i64;
+//         if close_to_int(f, int, 1.0e-12){
+//             result.push(int)
+//         }
+//         else if close_to_int(f, int+1, 1.0e-12){
+//             result.push(int+1)
+//         } else { panic!("resulting coefficients are not integer: {} , {}",f,int)} 
+//     };
+//     return result
+// }
+
+fn close_to_int(f:f64, i:i64, threshold: f64 ) -> bool {
+    let i_f64 = i as f64;
+    if f > i_f64 {f - i_f64 <= threshold}
+    else {i_f64 - f <= threshold}
+
+} 
+
+fn welch_berlekamp(shares: &[i64], t: u8) -> PyResult<Vec<i64>>{
+    let a = shares.iter().map(|x|*x).collect::<Vec<i64>>();
+    let py_welch_berlekamp_source = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), ".\\py_lib\\welch-berlekamp.py"));
+    Python::with_gil(|py|{
+        let py_welch_berlekamp: Py<PyAny> = PyModule::from_code(
+            py,
+            py_welch_berlekamp_source,
+            "",
+            ""
+        )?.getattr("welch_berlekamp")?.into();
+        let args = (a, t);
+        let res = py_welch_berlekamp.call1(py, args)?;
+        return res.extract(py)
+    })
+}
+
 pub fn detection_degree(servers: u8)->i64{
     let corruptions = (servers - 1) / 2;
     if (servers - 1) % 2 == 0{
@@ -75,10 +123,10 @@ pub fn detection_degree(servers: u8)->i64{
     return (corruptions + 1) as i64
 }
 
-pub fn correction_degree(servers: u8)->u8{
+pub fn correction_degree(servers: u8)->i64{
     let corruptions = (servers - 1) / 3;
     if (servers - 1) % 3 == 0{
-        return corruptions
+        return corruptions as i64
     }
-    return corruptions + 1
+    return (corruptions + 1) as i64
 }

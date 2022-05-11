@@ -18,6 +18,10 @@ pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol){
             //println!("{:?}",coefficients);
             shamir::create_shares(&coefficients, protocol.servers as i64)
         }
+        ProtocolType::ShamirErrorCorrection => {
+            let coefficients = shamir::create_coefficients(secret, shamir::correction_degree(protocol.servers), protocol.prime as u64);
+            shamir::create_shares(&coefficients, protocol.servers as i64)
+        }
         _ => {
             println!("pattern match failed");
             vec![]

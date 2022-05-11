@@ -41,9 +41,11 @@ fn main() {
     // run_protocol(additive_3_protocol, vec![]);
     // let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
     // run_protocol(shamir_protocol, vec![])
-    let corrupt = vec![2];
-    let shamir_protocol = Protocol{prime: 17, servers: 3, voters: 5, protocol: ProtocolType::ShamirFaultDetection};
-    run_protocol(shamir_protocol, corrupt);
+    let corrupt = vec![2, 4];
+    //let shamir_protocol = Protocol{prime: 17, servers: 3, voters: 5, protocol: ProtocolType::ShamirFaultDetection};
+    //run_protocol(shamir_protocol, corrupt);
+    let correction_protocol = Protocol{prime: 7, servers: 3, voters: 5, protocol: ProtocolType::ShamirErrorCorrection};
+    run_protocol(correction_protocol, corrupt);
 }
 
 fn run_protocol(protocol: Protocol, corrupt: Vec<u8>){

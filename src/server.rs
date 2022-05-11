@@ -52,6 +52,9 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool)
         ProtocolType::ShamirFaultDetection=>{
             shamir::fault_detection(&arc_sums.lock().unwrap()[1..])
         }
+        ProtocolType::ShamirErrorCorrection=>{
+            shamir::error_correction(&arc_sums.lock().unwrap()[1..])
+        }
         _ => {
             println!("pattern match failed");
             0
