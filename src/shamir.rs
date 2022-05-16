@@ -1,10 +1,10 @@
 use num::rational::Ratio;
 use pyo3::prelude::*;
 
-pub fn create_shares(coefficients: &Vec<i64>, number_of_servers: i64) -> Vec<i64>{
+pub fn create_shares(coefficients: &Vec<i64>, number_of_servers: i64, prime: i64) -> Vec<i64>{
     let mut ys = vec![];
     for x in 1..number_of_servers + 1{
-        let y = evaluate(&coefficients[..], x);
+        let y = evaluate(&coefficients[..], x)% prime;
         ys.push(y);
     }
     ys
@@ -17,12 +17,12 @@ pub fn create_coefficients(secret: i64, t: i64, prime: u64) -> Vec<i64>{
     coeffs
 }
 
-pub fn recover_secret(shares: &[i64]) -> i64{
+pub fn recover_secret(shares: &[i64],prime: i64) -> i64{
     let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
     let x_vec = (1..shares.len() as i64 + 1).map(|x|Ratio::new(x, 1)).collect::<Vec<Ratio<i64>>>();
     let result_as_ratio = crate::lagrange::lagrange_interpolation(&x_vec, &share_vec, Ratio::new(0, 1));
     match * result_as_ratio.denom(){
-        1 => {*result_as_ratio.numer()}
+        1 => {*result_as_ratio.numer()%prime}
         _ => {-2}
     } //TODO: Propagate cases where denominator is not 1 further in the system
 }
@@ -54,7 +54,7 @@ fn evaluate(coefficients: &[i64], x: i64) -> i64{
     return sum
 }
 
-pub fn fault_detection(shares: &[i64]) -> i64{
+pub fn fault_detection(shares: &[i64], prime: i64) -> i64{
     let servers = shares.len();
     let degree = detection_degree(servers as u8) as usize;
     let coefficients = recover_coefficients(&shares[..degree+1]);
@@ -65,16 +65,17 @@ pub fn fault_detection(shares: &[i64]) -> i64{
             }
         }
     }
-    coefficients[0]
+    coefficients[0]%prime
 }
 
-pub fn error_correction(shares: &[i64]) -> i64{
+pub fn error_correction(shares: &[i64], prime: i64) -> i64{
     let servers = shares.len();
     let degree = correction_degree(servers as u8);
-    let result = match welch_berlekamp(shares, degree as u8){
-        Ok(res) => {println!("{:?}",res);res}
+    let result = match welch_berlekamp(shares, degree as u8, prime){
+        Ok(res) => {res}
         Err(error) => {panic!("{}",error)}
     };
+    println!("{:?}", result[result.len() - 1]);
     return result[result.len() - 1]
 }
 
@@ -99,7 +100,7 @@ fn close_to_int(f:f64, i:i64, threshold: f64 ) -> bool {
 
 } 
 
-fn welch_berlekamp(shares: &[i64], t: u8) -> PyResult<Vec<i64>>{
+fn welch_berlekamp(shares: &[i64], t: u8, prime: i64) -> PyResult<Vec<i64>>{
     let a = shares.iter().map(|x|*x).collect::<Vec<i64>>();
     let py_welch_berlekamp_source = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), ".\\py_lib\\welch-berlekamp.py"));
     Python::with_gil(|py|{
@@ -109,7 +110,7 @@ fn welch_berlekamp(shares: &[i64], t: u8) -> PyResult<Vec<i64>>{
             "",
             ""
         )?.getattr("welch_berlekamp")?.into();
-        let args = (a, t);
+        let args = (a, t, prime);
         let res = py_welch_berlekamp.call1(py, args)?;
         return res.extract(py)
     })

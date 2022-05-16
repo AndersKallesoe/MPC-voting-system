@@ -35,16 +35,17 @@ pub struct Protocol{
  */
 
 fn main() {
-    // let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
-    // run_protocol(additive_2_protocol, vec![]);
-    // let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
-    // run_protocol(additive_3_protocol, vec![]);
-    // let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
-    // run_protocol(shamir_protocol, vec![])
-    let corrupt = vec![2, 4];
+    //let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
+    //run_protocol(additive_2_protocol, vec![]);
+    //let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
+    //run_protocol(additive_3_protocol, vec![]);
+    //let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
+    //run_protocol(shamir_protocol, vec![]);
+    //let corrupt = vec![2, 4];
     //let shamir_protocol = Protocol{prime: 17, servers: 3, voters: 5, protocol: ProtocolType::ShamirFaultDetection};
     //run_protocol(shamir_protocol, corrupt);
-    let correction_protocol = Protocol{prime: 7, servers: 3, voters: 5, protocol: ProtocolType::ShamirErrorCorrection};
+    let correction_protocol = Protocol{prime: 19, servers: 7, voters: 5, protocol: ProtocolType::ShamirErrorCorrection};
+    let corrupt = vec![6,5];
     run_protocol(correction_protocol, corrupt);
 }
 
@@ -252,4 +253,16 @@ fn create_clients(server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>, pr
     }
 }
 
+/*
+* Tests:
+*/
+fn test_additive(){
 
+}
+fn test_shamir(){
+
+}
+fn test_fault_detection(){
+
+}
+fn test_error_correction(){}
