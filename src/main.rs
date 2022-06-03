@@ -11,6 +11,7 @@ mod client;
 mod lagrange;
 mod shamir;
 mod additive;
+mod test;
 #[derive(Serialize, Deserialize, Debug)]
 
 #[derive(Clone, Copy)]
@@ -35,21 +36,10 @@ pub struct Protocol{
  */
 
 fn main() {
-    //let additive_2_protocol = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
-    //run_protocol(additive_2_protocol, vec![]);
-    //let additive_3_protocol = Protocol{prime: 113, servers: 10, voters: 100, protocol: ProtocolType::Additive};
-    //run_protocol(additive_3_protocol, vec![]);
-    //let shamir_protocol = Protocol{prime: 29, servers: 5, voters: 20, protocol: ProtocolType::Shamir};
-    //run_protocol(shamir_protocol, vec![]);
-    //let corrupt = vec![2, 4];
-    //let shamir_protocol = Protocol{prime: 17, servers: 3, voters: 5, protocol: ProtocolType::ShamirFaultDetection};
-    //run_protocol(shamir_protocol, corrupt);
-    let correction_protocol = Protocol{prime: 19, servers: 7, voters: 5, protocol: ProtocolType::ShamirErrorCorrection};
-    let corrupt = vec![6,5];
-    run_protocol(correction_protocol, corrupt);
+    test::demonstrate_error_correction();
 }
 
-fn run_protocol(protocol: Protocol, corrupt: Vec<u8>){
+fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
     let server_list = Arc::new(Mutex::new(vec![]));
     let server_listener = TcpListener::bind("127.0.0.1:0").expect("Error creating server listener!");
     let client_listener = TcpListener::bind("127.0.0.1:0").expect("Error creating client listener!");
@@ -81,57 +71,10 @@ fn run_protocol(protocol: Protocol, corrupt: Vec<u8>){
     let result = listen_for_clients(client_listener, protocol.voters);
     println!("collecting results...");
     let results = get_results_from_servers(server_streams,protocol);
-    report_results(protocol, result, results);
+    (result, results)
 }
 
-fn report_results(protocol: Protocol, result: i64, results: Vec<i64>){
-    line();
-    println!("Results:");
-    line();
-    println!("Protocol: {:?}",protocol.protocol);
-    println!("Servers: {}", protocol.servers);
-    println!("Voters: {}", protocol.voters);
-    println!("Prime: {}", protocol.prime);
-    line();
-    println!("Actual Result: {}",result);
-    println!("Server Results: {:?}", &results[1..]);
-    line();
-    let mut agree = true;
-    let mut lastresult = results[1];
-    for r in &results[1..] {
-        if *r != lastresult{
-            agree = false;
-            break;
-        }
-        lastresult = *r;
-    }
-    if agree{
-        println!("all servers agree");
-         match results[1] {
-            -1 => {println!("a fault was detected in the protocol")}
-            -2 =>{println!("could not find polynomial consisting of integers!")}
-            _=>{let success = check_results(result,results);
-                println!("Protocol succes: {}",success);}
-        };
-        
-    }else{
-        println!("server disagree(there is a bug!)");
-        println!("{:?}", results);
-    }
-    
-    line();
-}
-fn line(){
-    println!("________________________________________________________________________")
-}
-fn check_results(result: i64, results: Vec<i64>)->bool{
-    for r in results[1..].iter(){
-        if *r != result{
-            return false
-        }
-    };
-    return true
-}
+
 
 fn broadcast_server_list(server_streams: &Vec<TcpStream>, arc_server_list: Arc<Mutex<Vec<(SocketAddrV4,SocketAddrV4)>>>){
     
@@ -252,17 +195,3 @@ fn create_clients(server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>, pr
         );
     }
 }
-
-/*
-* Tests:
-*/
-fn test_additive(){
-
-}
-fn test_shamir(){
-
-}
-fn test_fault_detection(){
-
-}
-fn test_error_correction(){}

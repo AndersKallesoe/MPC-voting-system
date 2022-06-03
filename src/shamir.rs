@@ -75,7 +75,6 @@ pub fn error_correction(shares: &[i64], prime: i64) -> i64{
         Ok(res) => {res}
         Err(error) => {panic!("{}",error)}
     };
-    println!("{:?}", result[result.len() - 1]);
     return result[result.len() - 1]
 }
 

@@ -1,78 +1,54 @@
 import numpy as np
 import math
 from fractions import Fraction
-            
 
-# Coefficients [1, 5] shares [6, 4, 2, 0]
-# Coefficients [1, 2] shares [3, 5, 0, 2]
-# Coefficients [0, 1] shares [1, 2, 3, 4]
-# Coefficients [0, 2] shares [2, 4, 6, 1]
-# Coefficients [0, 1] shares [1, 2, 3, 4]
 
-# def welch_berlekamp(shares, t, p):
-#     shares_np = np.array([Fraction(share) for share in shares])
-#     alphas = np.arange(start=1, stop= len(shares_np)+1)
-#     alphas = np.array([Fraction(i) for i in range(1, len(shares_np)+1)])
-#     errors = math.floor((len(shares_np) - t - 1)/2)
-#     b = -(shares_np*alphas**errors)
-#     alpha_mat = -np.array([[alphas[j]**i for i in range(errors + t + 1)] for j in range(len(shares_np))])
-#     beta_mat = -np.multiply(alpha_mat[:,:errors], shares_np[:, np.newaxis])
-#     A = np.hstack((beta_mat, alpha_mat))
-#     coeffs = linalg_solve(A, b, p)
-#     error_coeffs = np.hstack((np.array([Fraction(1)]), coeffs[:np.shape(beta_mat)[1]][::-1]))
-#     Q_coeffs = coeffs[np.shape(beta_mat)[1]:][::-1]
-#     res = polynomial_division(Q_coeffs, error_coeffs)
-#     return res
 
-# def linalg_solve(A, b, p):
-#      mat = np.hstack((A, np.array([b]).T))
-#      for i in range (np.shape(A)[1]):
-#          try:
-#              mat[i] = (mat[i] * pow(mat[i][i],p-2,p)) % p
-#              for j in range(np.shape(A)[0]):
-#                  if j == i:
-#                      continue
-#                  mat[j]= (mat[j]-mat[i]* mat[j][i])%p
-#          except ZeroDivisionError:
-#              for row in mat:
-#                  print(frac.numerator for frac in row)
-#              raise ZeroDivisionError
-#      return mat.T[-1]
-
+shares = [1, 10, 11, 4, 8, 5, 12]
 
 def welch_berlekamp(shares, t, p):
     shares_np = np.array(shares)
     alphas = np.arange(start=1, stop= len(shares_np)+1)
     errors = math.floor((len(shares_np) - t - 1)/2)
-    b = -(shares_np*alphas**errors) % p
-    alpha_mat = -np.array([[alphas[j]**i for i in range(errors + t + 1)] for j in range(len(shares_np))]) % p
-    beta_mat = -np.multiply(alpha_mat[:,:errors], shares_np[:, np.newaxis]) % p
+    return welch_berlekamp_inner(shares_np, alphas, errors, p, t)
+
+
+def welch_berlekamp_inner(shares, alphas, error_degree, p, t):
+    b = -(shares*alphas**error_degree) % p
+    alpha_mat = -np.array([[alphas[j]**i for i in range(error_degree + t + 1)] for j in range(len(shares))]) % p
+    beta_mat = -np.multiply(alpha_mat[:,:error_degree], shares[:, np.newaxis]) % p
     A = np.hstack((beta_mat, alpha_mat))
-    coeffs = linalg_solve(A, b, p)
+    mat = linalg_solve(A, b, p)
+    diagonal = mat[:,:-1].diagonal()
+    ones = np.ones(np.shape(A)[1])
+    if not all(diagonal==ones) and error_degree != 0:
+        return welch_berlekamp_inner(shares, alphas, error_degree - 1, p, t)
+    coeffs = mat.T[-1]
     error_coeffs = np.hstack((np.array([1]), coeffs[:np.shape(beta_mat)[1]][::-1]))
     Q_coeffs = coeffs[np.shape(beta_mat)[1]:][::-1]
-    #print(error_coeffs)
-    #print(Q_coeffs)
     res = polynomial_division(Q_coeffs, error_coeffs,p)
-    return res
+    return res # check remainder
 
 def linalg_solve(A, b, p):
     mat = np.hstack((A, np.array([b]).T)) % p
-    print(mat)
-    print()
-    mat[0] = mat[0]+mat[1] % p
+    #error_str = str(mat) + '\n\n'
     for i in range (np.shape(A)[1]):
+        if(mat[i][i]==0):
+            mat = np.vstack((mat[:i],mat[i+1:],mat[i]))
         mat[i] = (mat[i] * pow(int(mat[i][i]),p-2,p)) % p
         for j in range(np.shape(A)[0]):
             if j == i:
                 continue
             mat[j]= (mat[j]-mat[i]* mat[j][i])%p
-        print(mat)
-        print()
-    print(mat.T[-1])
-    return mat.T[-1]
+        #error_str += str(mat) + '\n\n'
+    return mat
 
-
+#
+# 1 0 0 0 0 0
+# 0 1 0 0 0 0
+# 0 0 0 0 5 6 
+# 0 0 1 2 3 6 
+# 0 0 3 4 1 2
 
 def polynomial_division(A,B,p):
     A_ = np.copy(A)
@@ -89,7 +65,7 @@ def polynomial_division(A,B,p):
 
 
 
-shares = [6,3,0,4]
-print(welch_berlekamp(shares, 1, 7))
+# shares = [6,3,0,4]
+# print(welch_berlekamp(shares, 1, 7))
 
 
