@@ -12,7 +12,6 @@ pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol){
         ProtocolType::Shamir => {
             let coefficients = shamir::create_coefficients(secret, (protocol.servers - 1) as i64, protocol.prime as u64);
             let shares = shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64);
-            println!("coefficients: {:?} shares: {:?}", coefficients, shares);
             shares
         }
         ProtocolType::ShamirFaultDetection => {
@@ -23,7 +22,7 @@ pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol){
         ProtocolType::ShamirErrorCorrection => {
             let coefficients = shamir::create_coefficients(secret, shamir::correction_degree(protocol.servers), protocol.prime as u64);
             let shares = shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64);
-            println!("Coefficients {:?} shares {:?}", coefficients, shares);
+            //println!("Coefficients {:?} shares {:?}", coefficients, shares);
             shares
         }
         _ => {

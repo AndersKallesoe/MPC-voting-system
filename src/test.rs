@@ -10,23 +10,46 @@ fn check_results(result: i64, results: Vec<i64>)->bool{
     };
     return true
 }
+
 /*
     Test
 */
 pub fn test_additive(){
     let additive_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
     test_protocol(additive_protocol_1,vec![],100);   
-    let additive_protocol_2 = Protocol{prime: 113, servers: 5, voters: 100, protocol: ProtocolType::Additive};
+    let additive_protocol_2 = Protocol{prime: 113, servers: 3, voters: 20, protocol: ProtocolType::Additive};
+    test_protocol(additive_protocol_2,vec![],100);
+    let additive_protocol_2 = Protocol{prime: 113, servers: 10, voters: 20, protocol: ProtocolType::Additive};
+    test_protocol(additive_protocol_2,vec![],100);
+    let additive_protocol_2 = Protocol{prime: 113, servers: 15, voters: 20, protocol: ProtocolType::Additive};
     test_protocol(additive_protocol_2,vec![],100);   
 }
 pub fn test_shamir(){
-
+    let additive_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(additive_protocol_1,vec![],100);   
+    let additive_protocol_2 = Protocol{prime: 113, servers: 3, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(additive_protocol_2,vec![],100);
+    let additive_protocol_2 = Protocol{prime: 113, servers: 10, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(additive_protocol_2,vec![],100);
+    let additive_protocol_2 = Protocol{prime: 113, servers: 15, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(additive_protocol_2,vec![],100);   
 }
 pub fn test_fault_detection(){
-
+    let additive_protocol_1 = Protocol{prime: 29, servers: 3, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
+    test_protocol(additive_protocol_1,vec![1],100);   
+    let additive_protocol_2 = Protocol{prime: 113, servers: 5, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
+    test_protocol(additive_protocol_2,vec![0,4],100);
+    let additive_protocol_2 = Protocol{prime: 113, servers: 11, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
+    test_protocol(additive_protocol_2,vec![0,1,2,3,4],100);
+    
 }
 pub fn test_error_correction(){
-
+    let additive_protocol_1 = Protocol{prime: 29, servers: 4, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
+    test_protocol(additive_protocol_1,vec![1],100);   
+    let additive_protocol_2 = Protocol{prime: 113, servers: 7, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
+    test_protocol(additive_protocol_2,vec![0,4],100);
+    let additive_protocol_2 = Protocol{prime: 113, servers: 13, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
+    test_protocol(additive_protocol_2,vec![0,1,2,3,12],100);
 }
 
 fn test_protocol(protocol: Protocol, corrupt: Vec<u8>, times: i64){
@@ -36,7 +59,13 @@ fn test_protocol(protocol: Protocol, corrupt: Vec<u8>, times: i64){
     let mut failure = 0;
     for _i in 0..times{
         let c = corrupt.clone();
-        let (result,results) = run_protocol(protocol,c);
+        let ( mut result,results) = run_protocol(protocol,c);
+        match protocol.protocol {
+            ProtocolType::ShamirFaultDetection => {
+                result = -1
+            }
+            _=> {}
+        }
         if !check_results(result, results){
             failure = failure +1;
         }
@@ -48,6 +77,7 @@ fn test_protocol(protocol: Protocol, corrupt: Vec<u8>, times: i64){
         println!("the protocol failed {} times", failure);
     }
     line();
+    println!();
 }
 /*
     Demonstrate
@@ -61,7 +91,7 @@ pub fn demonstrate_additive(){
 pub fn demonstrate_shamir(){
     let shamir_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Shamir};
     run_and_report(shamir_protocol_1,vec![]);
-    let shamir_protocol_2 = Protocol{prime: 113, servers: 5, voters: 100, protocol: ProtocolType::Shamir};
+    let shamir_protocol_2 = Protocol{prime: 113, servers: 5, voters: 10, protocol: ProtocolType::Shamir};
     run_and_report(shamir_protocol_2,vec![]);
 }
 pub fn demonstrate_fault_detection(){
@@ -82,8 +112,8 @@ pub fn demonstrate_error_correction(){
     run_and_report(error_correction_protocol_2, vec![1,4,6]);
 }
 
-fn run_and_report(protocol: Protocol, corrupt: Vec<i64>){
-    let (result, results) = run_protocol(protocol, vec![2]);
+fn run_and_report(protocol: Protocol, corrupt: Vec<u8>){
+    let (result, results) = run_protocol(protocol, corrupt);
     report_results(protocol, result, results);
 }
 
@@ -132,22 +162,25 @@ fn line(){
     Benchmark
 */
 
-fn benchmark_protocol(protocol: Protocol, corrupt: Vec<u8>, times: i64){
+pub fn benchmark_protocol(protocol: Protocol, corrupt: Vec<u8>, runs: i64){
     line();
     println!("Benchmarking protocol: {:?},s:{},v:{},p:{}",protocol.protocol,protocol.servers,protocol.voters,protocol.prime);
-    println!("{} times:",times);
-    let now = Instant::now();
-    for _i in 0..times{
+    println!("{} runs:",runs);
+    let mut results = vec![];
+    let mut failure = 0; 
+    for _i in 0..runs{
+        let now = Instant::now();
         let c = corrupt.clone();
-        run_protocol(protocol,c);
+        let (result,res) = run_protocol(protocol,c);
+        if !check_results(result, res){
+            failure = failure +1;
+        }
+        let elapsed_time = now.elapsed();
+        results.push(elapsed_time);
     }
-    let elapsed_time = now.elapsed();
-    println!("total time elapsed: {}, ms",elapsed_time.as_millis());
-    println!("average time elapsed: {}, ms",elapsed_time.as_millis()/(times as u128));
+    println!("results: {:?}",results);
+    println!("with {} failures", failure);
     line();
 }
 
-pub fn benchmark_additive(){
-    let additive_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
-    benchmark_protocol(additive_protocol_1,vec![],100);
-}
+

@@ -36,7 +36,10 @@ pub struct Protocol{
  */
 
 fn main() {
-    test::demonstrate_error_correction();
+    // let p =  Protocol{prime: 163, servers: 13, voters: 10, protocol: ProtocolType::ShamirErrorCorrection};
+    // let c = vec![1, 5, 7, 9];
+    // test::benchmark_protocol(p,c,10);
+    test::test_fault_detection()
 }
 
 fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
@@ -55,7 +58,6 @@ fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
     let arc_server_list = server_list.clone();
     add_address((main_server_address, main_client_address), arc_server_list);
     let arc_server_list = server_list.clone();
-    println!("creating servers...");
     thread::spawn(
         move||{create_servers(main_server_address, protocol, corrupt)});
     let server_streams = listen_for_servers(server_listener, arc_server_list, protocol);
@@ -63,13 +65,10 @@ fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
     
     broadcast_server_list(&server_streams, arc_server_list);
     let arc_server_list = server_list.clone();
-    println!("creating clients...");
 
     thread::spawn(
             move ||{create_clients(arc_server_list,protocol)});
-    println!("collecting votes...");
     let result = listen_for_clients(client_listener, protocol.voters);
-    println!("collecting results...");
     let results = get_results_from_servers(server_streams,protocol);
     (result, results)
 }
