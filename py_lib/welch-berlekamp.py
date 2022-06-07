@@ -42,12 +42,6 @@ def linalg_solve(A, b, p):
         #error_str += str(mat) + '\n\n'
     return mat
 
-#
-# 1 0 0 0 0 0
-# 0 1 0 0 0 0
-# 0 0 0 0 5 6 
-# 0 0 1 2 3 6 
-# 0 0 3 4 1 2
 
 def polynomial_division(A,B,p):
     A_ = np.copy(A)
@@ -61,7 +55,6 @@ def polynomial_division(A,B,p):
         B_temp = np.append(np.array([0]*i),np.append(B*res[B_shape-1+i],np.array([0]*(diff-i)))) %p
         A_ = A_ - B_temp %p
     return res % p
-
 
 
 # shares = [6,3,0,4]

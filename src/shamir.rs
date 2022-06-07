@@ -6,6 +6,19 @@ fn imodulo(a:i64, b:i64) -> i64{
 }
 
 
+fn power(mut x: i64, mut n: i64, prime: i64) -> i64{
+    let mut res = 1;
+    x = imodulo(x, prime);
+    while n > 0{
+        if (n % 2) == 1{
+            res = imodulo(res*x, prime);
+        }
+        n = n >> 1;
+        x = imodulo(x * x, prime);
+    }
+    res
+}
+
 pub fn create_shares(coefficients: &Vec<i64>, number_of_servers: i64, prime: i64) -> Vec<i64>{
     let mut ys = vec![];
     for x in 1..number_of_servers + 1{
@@ -23,27 +36,28 @@ pub fn create_coefficients(secret: i64, t: i64, prime: u64) -> Vec<i64>{
 }
 
 pub fn recover_secret(shares: &[i64],prime: i64) -> i64{
-    let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
-    let x_vec = (1..shares.len() as i64 + 1).map(|x|Ratio::new(x, 1)).collect::<Vec<Ratio<i64>>>();
-    let result_as_ratio = crate::lagrange::lagrange_interpolation(&x_vec, &share_vec, Ratio::new(0, 1));
-    match *result_as_ratio.denom(){
-        1 => {imodulo(*result_as_ratio.numer(), prime)}
-        _ => {-2}
-    } //TODO: Propagate cases where denominator is not 1 further in the system
+    let share_vec = shares.iter().map(|s|*s).collect::<Vec<i64>>();
+    let mut x_vec = vec![];
+    for i in 1..shares.len()+1{
+        x_vec.push(i as i64);
+    }
+    let result = crate::lagrange::lagrange_interpolation(x_vec, share_vec, 0, prime);
+    println!("Result: {}", result);
+    return result
+    // match *result_as_ratio.denom(){
+    //     1 => {imodulo(*result_as_ratio.numer(), prime)}
+    //     _ => {-2}
+    // } //TODO: Propagate cases where denominator is not 1 further in the system
 }
 
-fn recover_coefficients(shares: &[i64]) -> Vec<i64>{
-    let share_vec = shares.iter().map(|s|Ratio::new(*s, 1)).collect::<Vec<Ratio<i64>>>();
-    let x_vec = (1..shares.len() as i64 + 1).map(|x|Ratio::new(x, 1)).collect::<Vec<Ratio<i64>>>();
-    let coeffs_as_ratios = crate::lagrange::lagrange_coefficients(&x_vec, &share_vec);
-    let mut result = vec![];
-    for coeff in coeffs_as_ratios.iter(){
-        match *coeff.denom(){
-            1=> {result.push(*coeff.numer());}
-            _=> return vec![-2]
-        }
-    }; //TODO: Propagate cases where denominator is not 1 further in the system
-    result
+fn recover_coefficients(shares: &[i64], prime: i64) -> Vec<i64>{
+    let share_vec = shares.iter().map(|s|*s).collect::<Vec<i64>>();
+    let mut x_vec = vec![];
+    for i in 1..shares.len()+1{
+        x_vec.push(i as i64);
+    }
+    let coeffs = crate::lagrange::lagrange_coefficients(&x_vec, &share_vec, prime);
+    coeffs
 }
 //[x*2 for x in numbers]
 fn verify(coefficients: &[i64], x: i64, y: i64, prime: i64) -> bool{
@@ -54,7 +68,7 @@ fn verify(coefficients: &[i64], x: i64, y: i64, prime: i64) -> bool{
 fn evaluate(coefficients: &[i64], x: i64, prime: i64) -> i64{
     let mut sum = 0;
     for (i, c) in coefficients.iter().enumerate(){
-        sum += imodulo(c * x.pow(i as u32), prime);
+        sum = imodulo(sum + c * power(x, i as i64, prime), prime);
     }
     return sum
 }
@@ -62,13 +76,16 @@ fn evaluate(coefficients: &[i64], x: i64, prime: i64) -> i64{
 pub fn fault_detection(shares: &[i64], prime: i64) -> i64{
     let servers = shares.len();
     let degree = detection_degree(servers as u8) as usize;
-    let coefficients = recover_coefficients(&shares[..degree+1]);
+    let coefficients = recover_coefficients(&shares[..degree+1], prime);
     if coefficients != vec![-2]{
         for i in degree+1..servers{
             if !verify(&coefficients, (i + 1) as i64, shares[i], prime){
                 return -1
             }
         }
+    }
+    else{
+        return -2
     }
     imodulo(coefficients[0], prime)
 }

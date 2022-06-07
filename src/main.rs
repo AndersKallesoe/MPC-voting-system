@@ -36,10 +36,11 @@ pub struct Protocol{
  */
 
 fn main() {
-    // let p =  Protocol{prime: 163, servers: 13, voters: 10, protocol: ProtocolType::ShamirErrorCorrection};
-    // let c = vec![1, 5, 7, 9];
-    // test::benchmark_protocol(p,c,10);
-    test::test_fault_detection()
+    // let y_vec = vec![28, 18, 8];
+    // let x_vec = vec![1, 2, 3];
+    // println!("{:?}", lagrange::lagrange_coefficients(&x_vec, &y_vec, 29));
+    let shamir_protocol = Protocol{prime: 113, servers: 24, voters: 20, protocol: ProtocolType::Shamir};
+    run_protocol(shamir_protocol, vec![]);
 }
 
 fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
@@ -140,6 +141,7 @@ fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<(Soc
 }
 
 fn create_servers(main_addr: SocketAddrV4, protocol: Protocol, mut corrupt: Vec<u8> ){
+    corrupt.reverse();
     let mut next_corrupt = get_next_corrupt(&mut corrupt);
     for i in 0..protocol.servers {
         let mut honest = true;

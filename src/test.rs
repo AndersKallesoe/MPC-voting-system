@@ -25,31 +25,31 @@ pub fn test_additive(){
     test_protocol(additive_protocol_2,vec![],100);   
 }
 pub fn test_shamir(){
-    let additive_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Shamir};
-    test_protocol(additive_protocol_1,vec![],100);   
-    let additive_protocol_2 = Protocol{prime: 113, servers: 3, voters: 20, protocol: ProtocolType::Shamir};
-    test_protocol(additive_protocol_2,vec![],100);
-    let additive_protocol_2 = Protocol{prime: 113, servers: 10, voters: 20, protocol: ProtocolType::Shamir};
-    test_protocol(additive_protocol_2,vec![],100);
-    let additive_protocol_2 = Protocol{prime: 113, servers: 15, voters: 20, protocol: ProtocolType::Shamir};
-    test_protocol(additive_protocol_2,vec![],100);   
+    let shamir_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(shamir_protocol_1,vec![],100);   
+    let shamir_protocol_2 = Protocol{prime: 113, servers: 3, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(shamir_protocol_2,vec![],100);
+    let shamir_protocol_2 = Protocol{prime: 113, servers: 10, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(shamir_protocol_2,vec![],100);
+    let shamir_protocol_2 = Protocol{prime: 113, servers: 15, voters: 20, protocol: ProtocolType::Shamir};
+    test_protocol(shamir_protocol_2,vec![],100);   
 }
 pub fn test_fault_detection(){
-    let additive_protocol_1 = Protocol{prime: 29, servers: 3, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
-    test_protocol(additive_protocol_1,vec![1],100);   
-    let additive_protocol_2 = Protocol{prime: 113, servers: 5, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
-    test_protocol(additive_protocol_2,vec![0,4],100);
-    let additive_protocol_2 = Protocol{prime: 113, servers: 11, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
-    test_protocol(additive_protocol_2,vec![0,1,2,3,4],100);
+    let fd_protocol_1 = Protocol{prime: 29, servers: 3, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
+    test_protocol(fd_protocol_1,vec![1],100);   
+    let fd_protocol_2 = Protocol{prime: 113, servers: 5, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
+    test_protocol(fd_protocol_2,vec![0,4],100);
+    let fd_protocol_2 = Protocol{prime: 113, servers: 11, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
+    test_protocol(fd_protocol_2,vec![0,1,2,3,4],100);
     
 }
 pub fn test_error_correction(){
-    let additive_protocol_1 = Protocol{prime: 29, servers: 4, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
-    test_protocol(additive_protocol_1,vec![1],100);   
-    let additive_protocol_2 = Protocol{prime: 113, servers: 7, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
-    test_protocol(additive_protocol_2,vec![0,4],100);
-    let additive_protocol_2 = Protocol{prime: 113, servers: 13, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
-    test_protocol(additive_protocol_2,vec![0,1,2,3,12],100);
+    let ec_protocol_1 = Protocol{prime: 29, servers: 4, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
+    test_protocol(ec_protocol_1,vec![1],100);   
+    let ec_protocol_2 = Protocol{prime: 113, servers: 7, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
+    test_protocol(ec_protocol_2,vec![0,4],100);
+    let ec_protocol_2 = Protocol{prime: 113, servers: 13, voters: 20, protocol: ProtocolType::ShamirErrorCorrection};
+    test_protocol(ec_protocol_2,vec![0,1,2,3,12],100);
 }
 
 fn test_protocol(protocol: Protocol, corrupt: Vec<u8>, times: i64){
@@ -85,14 +85,14 @@ fn test_protocol(protocol: Protocol, corrupt: Vec<u8>, times: i64){
 pub fn demonstrate_additive(){
     let additive_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Additive};
     run_and_report(additive_protocol_1,vec![]);   
-    let additive_protocol_2 = Protocol{prime: 113, servers: 5, voters: 100, protocol: ProtocolType::Additive};
-    run_and_report(additive_protocol_2,vec![]);   
+    //let additive_protocol_2 = Protocol{prime: 113, servers: 5, voters: 100, protocol: ProtocolType::Additive};
+    //run_and_report(additive_protocol_2,vec![]);   
 }
 pub fn demonstrate_shamir(){
     let shamir_protocol_1 = Protocol{prime: 29, servers: 2, voters: 20, protocol: ProtocolType::Shamir};
     run_and_report(shamir_protocol_1,vec![]);
-    let shamir_protocol_2 = Protocol{prime: 113, servers: 5, voters: 10, protocol: ProtocolType::Shamir};
-    run_and_report(shamir_protocol_2,vec![]);
+    //let shamir_protocol_2 = Protocol{prime: 113, servers: 5, voters: 10, protocol: ProtocolType::Shamir};
+    //run_and_report(shamir_protocol_2,vec![]);
 }
 pub fn demonstrate_fault_detection(){
     let fault_detection_protocol_1 = Protocol{prime: 29, servers: 3, voters: 20, protocol: ProtocolType::ShamirFaultDetection};
@@ -112,12 +112,12 @@ pub fn demonstrate_error_correction(){
     run_and_report(error_correction_protocol_2, vec![1,4,6]);
 }
 
-fn run_and_report(protocol: Protocol, corrupt: Vec<u8>){
-    let (result, results) = run_protocol(protocol, corrupt);
-    report_results(protocol, result, results);
+fn run_and_report(protocol: Protocol, corruptions: Vec<u8>){
+    let (result, results) = run_protocol(protocol, corruptions.clone());
+    report_results(protocol, result, results, corruptions);
 }
 
-fn report_results(protocol: Protocol, result: i64, results: Vec<i64>){
+fn report_results(protocol: Protocol, result: i64, results: Vec<i64>, corruptions: Vec<u8>){
     line();
     println!("Results:");
     line();
@@ -125,6 +125,7 @@ fn report_results(protocol: Protocol, result: i64, results: Vec<i64>){
     println!("Servers: {}", protocol.servers);
     println!("Voters: {}", protocol.voters);
     println!("Prime: {}", protocol.prime);
+    println!("Corruptions: {:?}", corruptions);
     line();
     println!("Actual Result: {}",result);
     println!("Server Results: {:?}", &results[1..]);
