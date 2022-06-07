@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::str::*;
 use crate::*;
 
-pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool){
+pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool, print: bool){
     let server_listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let server_listener_addr = 
         match server_listener.local_addr() {
@@ -22,10 +22,11 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool)
     let shares = Arc::new(Mutex::new(vec![]));
     let arc_shares = shares.clone(); 
     let (main_stream,addr_list) = connect_to_main(mainaddr, (server_listener_addr, client_listener_addr));
+    let own_index = get_index_from_addr(&addr_list, server_listener_addr);
     listen_for_clients(protocol.voters, client_listener,arc_shares);
     let sum = match honest{
-        true => {let sum = sum(shares) % protocol.prime; println!("Honest server sum: {}", sum); sum}
-        false => {let sum = (sum(shares) + 1) % protocol.prime; println!("Corrupt server sum: {}", sum); sum}
+        true => {let sum = sum(shares) % protocol.prime; if print {println!("{}: Honest server sum of shares: {}", own_index, sum)}; sum}
+        false => {let sum = sum(shares) + 1 % protocol.prime; if print {println!("{}: Corrupt server sum of shares: {}", own_index, sum)}; sum}
     };
     let mut vec = vec![0 as i64; protocol.servers as usize + 1];
     vec[get_index_from_addr(&addr_list, server_listener_addr)] = sum;
@@ -54,10 +55,6 @@ pub fn protocol_server(protocol: Protocol, mainaddr: SocketAddrV4, honest: bool)
         }
         ProtocolType::ShamirErrorCorrection=>{
             shamir::error_correction(&arc_sums.lock().unwrap()[1..], protocol.prime as i64)
-        }
-        _ => {
-            println!("pattern match failed");
-            0
         }
     };
     let own_index = get_index_from_addr(&addr_list, server_listener_addr);

@@ -30,7 +30,6 @@ def welch_berlekamp_inner(shares, alphas, error_degree, p, t):
 
 def linalg_solve(A, b, p):
     mat = np.hstack((A, np.array([b]).T)) % p
-    #error_str = str(mat) + '\n\n'
     for i in range (np.shape(A)[1]):
         if(mat[i][i]==0):
             mat = np.vstack((mat[:i],mat[i+1:],mat[i]))
@@ -39,7 +38,6 @@ def linalg_solve(A, b, p):
             if j == i:
                 continue
             mat[j]= (mat[j]-mat[i]* mat[j][i])%p
-        #error_str += str(mat) + '\n\n'
     return mat
 
 
@@ -55,9 +53,5 @@ def polynomial_division(A,B,p):
         B_temp = np.append(np.array([0]*i),np.append(B*res[B_shape-1+i],np.array([0]*(diff-i)))) %p
         A_ = A_ - B_temp %p
     return res % p
-
-
-# shares = [6,3,0,4]
-# print(welch_berlekamp(shares, 1, 7))
 
 

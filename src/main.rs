@@ -12,6 +12,7 @@ mod lagrange;
 mod shamir;
 mod additive;
 mod test;
+mod terminal_input;
 #[derive(Serialize, Deserialize, Debug)]
 
 #[derive(Clone, Copy)]
@@ -39,11 +40,14 @@ fn main() {
     // let y_vec = vec![28, 18, 8];
     // let x_vec = vec![1, 2, 3];
     // println!("{:?}", lagrange::lagrange_coefficients(&x_vec, &y_vec, 29));
-    let shamir_protocol = Protocol{prime: 113, servers: 24, voters: 20, protocol: ProtocolType::Shamir};
-    run_protocol(shamir_protocol, vec![]);
+    // let shamir_protocol = Protocol{prime: 113, servers: 24, voters: 20, protocol: ProtocolType::Shamir};
+    // run_protocol(shamir_protocol, vec![]);
+    // let shamir = Protocol{prime: 29, servers: 2, voters: 10, protocol: ProtocolType::Shamir};
+    // test::benchmark_protocol(shamir, vec![], 10)
+    terminal_input::run_system()
 }
 
-fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
+fn run_protocol(protocol: Protocol, corrupt: Vec<u8>, print: bool)-> (i64, Vec<i64>){
     let server_list = Arc::new(Mutex::new(vec![]));
     let server_listener = TcpListener::bind("127.0.0.1:0").expect("Error creating server listener!");
     let client_listener = TcpListener::bind("127.0.0.1:0").expect("Error creating client listener!");
@@ -60,7 +64,7 @@ fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
     add_address((main_server_address, main_client_address), arc_server_list);
     let arc_server_list = server_list.clone();
     thread::spawn(
-        move||{create_servers(main_server_address, protocol, corrupt)});
+        move||{create_servers(main_server_address, protocol, corrupt, print)});
     let server_streams = listen_for_servers(server_listener, arc_server_list, protocol);
     let arc_server_list = server_list.clone(); 
     
@@ -68,7 +72,7 @@ fn run_protocol(protocol: Protocol, corrupt: Vec<u8>)-> (i64, Vec<i64>){
     let arc_server_list = server_list.clone();
 
     thread::spawn(
-            move ||{create_clients(arc_server_list,protocol)});
+            move ||{create_clients(arc_server_list,protocol, print)});
     let result = listen_for_clients(client_listener, protocol.voters);
     let results = get_results_from_servers(server_streams,protocol);
     (result, results)
@@ -140,14 +144,14 @@ fn listen_for_servers(listener: TcpListener, arc_server_list: Arc<Mutex<Vec<(Soc
     vec![]
 }
 
-fn create_servers(main_addr: SocketAddrV4, protocol: Protocol, mut corrupt: Vec<u8> ){
+fn create_servers(main_addr: SocketAddrV4, protocol: Protocol, mut corrupt: Vec<u8>, print: bool){
     corrupt.reverse();
     let mut next_corrupt = get_next_corrupt(&mut corrupt);
     for i in 0..protocol.servers {
         let mut honest = true;
         if i==next_corrupt{ next_corrupt = get_next_corrupt(&mut corrupt);honest = false}
         thread::spawn(
-            move ||{server::protocol_server(protocol.clone(), main_addr.clone(), honest)});
+            move ||{server::protocol_server(protocol.clone(), main_addr.clone(), honest, print)});
     }
 
 fn get_next_corrupt(corrupt: &mut Vec<u8>) -> u8{
@@ -183,7 +187,7 @@ fn listen_for_clients(listener: TcpListener, voters: u16) -> i64{
     }
     loop{}
 }
-fn create_clients(server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>, protocol: Protocol){
+fn create_clients(server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>, protocol: Protocol, print: bool){
     let mut server_list_copy = vec![];
     for addr in server_list.lock().unwrap()[..].iter(){
         server_list_copy.push((*SocketAddrV4::ip(&addr.1),addr.1.port()));
@@ -192,7 +196,7 @@ fn create_clients(server_list: Arc<Mutex<Vec<(SocketAddrV4, SocketAddrV4)>>>, pr
         let protocol_clone = protocol.clone();
         let clone = server_list_copy.clone();
         thread::spawn(
-            move||{client::client(clone, protocol_clone)}
+            move||{client::client(clone, protocol_clone, print)}
         );
     }
 }

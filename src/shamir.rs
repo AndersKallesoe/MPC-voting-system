@@ -1,4 +1,3 @@
-use num::rational::Ratio;
 use pyo3::prelude::*;
 
 fn imodulo(a:i64, b:i64) -> i64{
@@ -42,12 +41,7 @@ pub fn recover_secret(shares: &[i64],prime: i64) -> i64{
         x_vec.push(i as i64);
     }
     let result = crate::lagrange::lagrange_interpolation(x_vec, share_vec, 0, prime);
-    println!("Result: {}", result);
     return result
-    // match *result_as_ratio.denom(){
-    //     1 => {imodulo(*result_as_ratio.numer(), prime)}
-    //     _ => {-2}
-    // } //TODO: Propagate cases where denominator is not 1 further in the system
 }
 
 fn recover_coefficients(shares: &[i64], prime: i64) -> Vec<i64>{
@@ -59,7 +53,7 @@ fn recover_coefficients(shares: &[i64], prime: i64) -> Vec<i64>{
     let coeffs = crate::lagrange::lagrange_coefficients(&x_vec, &share_vec, prime);
     coeffs
 }
-//[x*2 for x in numbers]
+
 fn verify(coefficients: &[i64], x: i64, y: i64, prime: i64) -> bool{
     let y_1 = evaluate(coefficients, x, prime);
     y_1 == y
@@ -99,27 +93,6 @@ pub fn error_correction(shares: &[i64], prime: i64) -> i64{
     };
     return result[result.len() - 1]
 }
-
-// fn check_result(v: Vec<i64>) -> Vec<i64>{
-//     let mut result = vec!();
-//     for f in v {
-//         let int = f as i64;
-//         if close_to_int(f, int, 1.0e-12){
-//             result.push(int)
-//         }
-//         else if close_to_int(f, int+1, 1.0e-12){
-//             result.push(int+1)
-//         } else { panic!("resulting coefficients are not integer: {} , {}",f,int)} 
-//     };
-//     return result
-// }
-
-fn close_to_int(f:f64, i:i64, threshold: f64 ) -> bool {
-    let i_f64 = i as f64;
-    if f > i_f64 {f - i_f64 <= threshold}
-    else {i_f64 - f <= threshold}
-
-} 
 
 fn welch_berlekamp(shares: &[i64], t: u8, prime: i64) -> PyResult<Vec<i64>>{
     let a = shares.iter().map(|x|*x).collect::<Vec<i64>>();

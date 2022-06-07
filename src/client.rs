@@ -2,32 +2,29 @@ use std::net::*;
 use std::time::*;
 use crate::*;
 
-pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol){
+pub fn client(server_list: Vec<(Ipv4Addr,u16)>, protocol: Protocol, print: bool){
     thread::sleep(Duration::from_secs(2));
     let secret = create_secret();
     let shares = match protocol.protocol{
         ProtocolType::Additive => {
-            additive::create_shares(secret, protocol.prime, protocol.servers as i64)
+            let shares = additive::create_shares(secret, protocol.prime, protocol.servers as i64);
+            if print{println!("Client Additive shares: {:?}", shares)};
+            shares
         }
         ProtocolType::Shamir => {
             let coefficients = shamir::create_coefficients(secret, (protocol.servers - 1) as i64, protocol.prime as u64);
-            let shares = shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64);
-            shares
+            if print{println!("Client Shamir coefficients: {:?}", coefficients)};
+            shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64)
         }
         ProtocolType::ShamirFaultDetection => {
             let coefficients = shamir::create_coefficients(secret, shamir::detection_degree(protocol.servers), protocol.prime as u64);
-            //println!("{:?}",coefficients);
+            if print{println!("Client Shamir coefficients: {:?}", coefficients)};
             shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64)
         }
         ProtocolType::ShamirErrorCorrection => {
             let coefficients = shamir::create_coefficients(secret, shamir::correction_degree(protocol.servers), protocol.prime as u64);
-            let shares = shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64);
-            //println!("Coefficients {:?} shares {:?}", coefficients, shares);
-            shares
-        }
-        _ => {
-            println!("pattern match failed");
-            vec![]
+            if print{println!("Client Shamir coefficients: {:?}", coefficients)};
+            shamir::create_shares(&coefficients, protocol.servers as i64, protocol.prime as i64)
         }
     };
     send_shares(server_list, secret, shares)
