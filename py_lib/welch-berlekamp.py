@@ -3,7 +3,7 @@ import math
 
 
 
-shares = [1, 10, 11, 4, 8, 5, 12]
+shares = [7, 11, 15, 19, 23, 27, 31]
 
 def welch_berlekamp(shares, t, p):
     shares_np = np.array(shares)
@@ -55,3 +55,4 @@ def polynomial_division(A,B,p):
     return res % p
 
 
+welch_berlekamp(shares, 2, 37)

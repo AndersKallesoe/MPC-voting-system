@@ -42,8 +42,8 @@ fn main() {
     // println!("{:?}", lagrange::lagrange_coefficients(&x_vec, &y_vec, 29));
     // let shamir_protocol = Protocol{prime: 113, servers: 24, voters: 20, protocol: ProtocolType::Shamir};
     // run_protocol(shamir_protocol, vec![]);
-    // let shamir = Protocol{prime: 29, servers: 2, voters: 10, protocol: ProtocolType::Shamir};
-    // test::benchmark_protocol(shamir, vec![], 10)
+    // let shamir = Protocol{prime: 29, servers: 4, voters: 10, protocol: ProtocolType::ShamirErrorCorrection};
+    // test::run_and_report(shamir, vec![], true)
     terminal_input::run_system()
 }
 

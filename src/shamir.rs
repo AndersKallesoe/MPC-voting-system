@@ -111,17 +111,19 @@ fn welch_berlekamp(shares: &[i64], t: u8, prime: i64) -> PyResult<Vec<i64>>{
 }
 
 pub fn detection_degree(servers: u8)->i64{
-    let corruptions = (servers - 1) / 2;
-    if (servers - 1) % 2 == 0{
-        return corruptions as i64
-    }
-    return (corruptions + 1) as i64
+    ((servers - 1) / 2) as i64
+    // let corruptions = (servers - 1) / 2;
+    // if (servers - 1) % 2 == 0{
+    //     return corruptions as i64
+    // }
+    // return (corruptions + 1) as i64
 }
 
 pub fn correction_degree(servers: u8)->i64{
-    let corruptions = (servers - 1) / 3;
-    if (servers - 1) % 3 == 0{
-        return corruptions as i64
-    }
-    return (corruptions + 1) as i64
+    ((servers - 1) / 3) as i64
+    // let corruptions = (servers - 1) / 3;
+    // if (servers - 1) % 3 == 0{
+    //     return corruptions as i64
+    // }
+    // return (corruptions + 1) as i64
 }
